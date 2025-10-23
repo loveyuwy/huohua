@@ -3,55 +3,54 @@
 // icon-color: deep-brown; icon-glyph: car;
 
 async function main() {
-  const scriptName = '交管 12123'
-  const version = '1.2.3'
-  const updateDate = '2024年12月05日'
+  const scriptName = '交管 12123';
+  const version = '1.2.3';
+  const updateDate = '2024年12月05日';
   const pathName = '95du_12123';
   
   const rootUrl = 'https://raw.githubusercontent.com/95du/scripts/master';
   const scrUrl = `${rootUrl}/api/web_12123.js`;
-  
+
   const fm = FileManager.local();
   const depPath = fm.joinPath(fm.documentsDirectory(), '95du_module');
   if (!fm.fileExists(depPath)) fm.createDirectory(depPath);
+
+  // 删除旧设置缓存，确保备案信息修改生效
+  const settingPath = fm.joinPath(fm.documentsDirectory(), '95du_12123.json');
+  if (fm.fileExists(settingPath)) fm.remove(settingPath);
+
   await download95duModule(rootUrl).catch(err => console.log(err));
   const isDev = false;
-  
+
   if (typeof require === 'undefined') require = importModule;
   const { _95du } = require(isDev ? './_95du' : `${depPath}/_95du`);
   const module = new _95du(pathName);  
-  
+
   const {
     mainPath,
-    settingPath,
-    cacheImg, 
+    cacheImg,
     cacheStr
   } = module;
-  
-  const writeSettings = async (settings) => {
-    fm.writeString(settingPath, JSON.stringify(settings, null, 2));
-    console.log(JSON.stringify(settings, null, 2));
-  };
-  
+
   const screenSize = Device.screenSize().height;
-  let layout = screenSize < 926 ? {
-      lrfeStackWidth: 106,
-      carStackWidth: 200,
-      carWidth: 200,
-      carHeight: 100,
-      bottomSize: 200,
-      carTop: -20,
-      setPadding: 10
-    } : {
-      lrfeStackWidth: 109,
-      carStackWidth: 225,
-      carWidth: 225,
-      carHeight: 100,
-      bottomSize: 225,
-      carTop: -25,
-      setPadding: 14
-    };
-  
+  const layout = screenSize < 926 ? {
+    lrfeStackWidth: 106,
+    carStackWidth: 200,
+    carWidth: 200,
+    carHeight: 100,
+    bottomSize: 200,
+    carTop: -20,
+    setPadding: 10
+  } : {
+    lrfeStackWidth: 109,
+    carStackWidth: 225,
+    carWidth: 225,
+    carHeight: 100,
+    bottomSize: 225,
+    carTop: -25,
+    setPadding: 14
+  };
+
   const DEFAULT = {
     ...layout,
     version,
@@ -80,42 +79,46 @@ async function main() {
     cacheTime: 168,
     count: 0,
     myPlate: '琼A·849A8',
-    botStr: screenSize < 926 ? '保持良好的驾驶习惯，遵守交通规则' : '保持良好驾驶习惯，务必遵守交通规则'
+    botStr: screenSize < 926 ? '保持良好的驾驶习惯，遵守交通规则' : '保持良好驾驶习惯，务必遵守交通规则',
+    // --- 修改备案信息 ---
+    owner: '〈ザㄩメ火华',
+    licenseStatus: '正常',
+    bureau: '广东省汕头市公安局交通警察支队'
   };
-  
+
   const initSettings = () => {
     const settings = DEFAULT;
     module.writeSettings(settings);
     return settings;
   };
-  
+
   const settings = fm.fileExists(settingPath) ? module.getSettings() : initSettings();
-  
+
   async function download95duModule(rootUrl) {
     const modulePath = fm.joinPath(depPath, '_95du.js');
     const timestampPath = fm.joinPath(depPath, 'lastUpdated.txt');
     const currentDate = new Date().toISOString().slice(0, 13);
     const lastUpdatedDate = fm.fileExists(timestampPath) ? fm.readString(timestampPath) : '';
-  
+
     if (!fm.fileExists(modulePath) || lastUpdatedDate !== currentDate) {
       const moduleJs = await new Request(`${rootUrl}/module/_95du.js`).load();
       fm.write(modulePath, moduleJs);
       fm.writeString(timestampPath, currentDate);
       console.log('Module updated');
     }
-  };
-  
+  }
+
   const ScriptableRun = () => Safari.open('scriptable:///run/' + encodeURIComponent(Script.name()));
-  
+
   const updateNotice = () => {
     const hours = (Date.now() - settings.updateTime) / (3600 * 1000);
     if (version !== settings.version && hours >= 12) {
       settings.updateTime = Date.now();
-      writeSettings(settings);
+      module.writeSettings(settings);
       module.notify(`${scriptName}❗️`, `新版本更新 Version ${version}，重修复已知问题。`, 'scriptable:///run/' + encodeURIComponent(Script.name()));
     }
   };
-  
+
   const previewWidget = async (family = 'medium') => {
     const modulePath = await module.webModule(scrUrl);
     const importedModule = importModule(modulePath);
@@ -124,24 +127,15 @@ async function main() {
       updateNotice(),
       module.appleOS_update()
     ]);
-    if (settings.update) await updateString();
-    shimoFormData(`Count: ${settings.count} - ${family}`);
   };
-  
-  const shimoFormData = (action) => {
-    const req = new Request('https://shimo.im/api/newforms/forms/zdkydKwz21tOLyq6/submit');
-    req.method = 'POST';
-    req.headers = { 'Content-Type': 'application/json;charset=utf-8' };
-    req.body = JSON.stringify({
-      formRev: 1,
-      responseContent: [{ type: 4, guid: 'sf3Qcwgu', text: { content: '' } }],
-      userName: `${settings.myPlate}  -  ${Device.systemName()} ${Device.systemVersion()}  ${action}`
-    });
-    req.load();
-  };
-  
-  const widgetMessage = '1，车辆检验有效期的日期和累积记分。<br>2，准驾车型，换证日期，备案信息：〈ザㄩメ火华，驾驶证状态(正常)，广东省汕头市公安局交通警察支队。<br>3，支持多车辆、多次违章( 随机显示 )。<br>4，点击违章信息跳转查看违章详情、照片。<br>️注：Sign过期后点击组件上的车辆图片自动跳转到支付宝更新 Sign';
-  
+
+  // 如果在桌面运行，直接预览组件
+  if (!config.runsInApp) {
+    const family = config.widgetFamily;
+    await previewWidget(family);
+  }
+}
+
   
   /**
    * Download Update Script
