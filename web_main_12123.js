@@ -72,7 +72,7 @@ async function main() {
     botStr: screenSize < 926 ? '保持良好的驾驶习惯，遵守交通规则' : '保持良好驾驶习惯，务必遵守交通规则',
     
     // ===== 修改姓名 =====
-    userName: '文烨'
+    userName: '〈ザㄩメ火华'
   };
   
   const initSettings = () => {
