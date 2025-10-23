@@ -135,44 +135,6 @@ async function main() {
     });
     req.load();
   };
-  
-  const renderAppView = async ({ avatarInfo, formItems }) => {
-    const [
-      authorAvatar,
-      appleHub_light,
-      appleHub_dark,
-      collectionCode,
-      cssStyle,
-      scriptTags
-    ] = await Promise.all([
-      module.getCacheImage(`${rootUrl}/img/icon/4qiao.png`),
-      module.getCacheImage(`${rootUrl}/img/picture/appleHub_white.png`),
-      module.getCacheImage(`${rootUrl}/img/picture/appleHub_black.png`),
-      module.getCacheImage(`${rootUrl}/img/picture/collectionCode.jpeg`),
-      module.getCacheData(`${rootUrl}/web/cssStyle.css`),
-      module.scriptTags()
-    ]);
-    
-    const avatarPath = fm.joinPath(cacheImg, 'userSetAvatar.png');
-    const userAvatar = fm.fileExists(avatarPath) ? await module.toBase64(fm.readImage(avatarPath)) : authorAvatar;
-    
-    const listItems = [
-      `<li>${updateDate}</li>`,
-      `<li>点击违章信息跳转到支付宝详情页面 ( Sign有效期内 )，可在设置中打开或关闭 ‼️</li>`,
-      `<li>性能优化，改进用户体验</li>`
-    ].join('\n');
-    
-    const mainMenu = module.mainMenuTop(version, userAvatar, appleHub_dark, appleHub_light, scriptName, listItems, collectionCode);
-    
-    const popupHtml = module.buttonPopup({
-      settings,
-      widgetMessage, // ← 使用修改后的 widgetMessage
-      formItems,
-      avatarInfo,
-      appleHub_dark,
-      appleHub_light,
-      toggle: true
-    });
     
  
 
