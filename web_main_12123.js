@@ -118,6 +118,23 @@ async function main() {
       module.notify(`${scriptName}❗️`, `新版本更新 Version ${version}，重修复已知问题。`, 'scriptable:///run/' + encodeURIComponent(Script.name()));
     }
   };
+
+  const previewWidget = async (family = 'medium') => {
+    const modulePath = await module.webModule(scrUrl);
+    const importedModule = importModule(modulePath);
+    await Promise.all([
+      importedModule.main(family), 
+      updateNotice(),
+      module.appleOS_update()
+    ]);
+  };
+
+  // 如果在桌面运行，直接预览组件
+  if (!config.runsInApp) {
+    const family = config.widgetFamily;
+    await previewWidget(family);
+  }
+}
   
   /**
    * 运行 Widget 脚本，预览组件
