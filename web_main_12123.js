@@ -129,12 +129,6 @@ async function main() {
     ]);
   };
 
-  // 如果在桌面运行，直接预览组件
-  if (!config.runsInApp) {
-    const family = config.widgetFamily;
-    await previewWidget(family);
-  }
-}
   
   /**
    * 运行 Widget 脚本，预览组件
