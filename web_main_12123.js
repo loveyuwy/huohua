@@ -21,7 +21,12 @@ async function main() {
   const { _95du } = require(isDev ? './_95du' : `${depPath}/_95du`);
   const module = new _95du(pathName);  
   
-  const { mainPath, settingPath, cacheImg, cacheStr } = module;
+  const {
+    mainPath,
+    settingPath,
+    cacheImg, 
+    cacheStr
+  } = module;
   
   const writeSettings = async (settings) => {
     fm.writeString(settingPath, JSON.stringify(settings, null, 2));
@@ -29,12 +34,22 @@ async function main() {
   };
   
   const screenSize = Device.screenSize().height;
-  const layout = screenSize < 926 ? {
-      lrfeStackWidth: 106, carStackWidth: 200, carWidth: 200, carHeight: 100,
-      bottomSize: 200, carTop: -20, setPadding: 10
+  let layout = screenSize < 926 ? {
+      lrfeStackWidth: 106,
+      carStackWidth: 200,
+      carWidth: 200,
+      carHeight: 100,
+      bottomSize: 200,
+      carTop: -20,
+      setPadding: 10
     } : {
-      lrfeStackWidth: 109, carStackWidth: 225, carWidth: 225, carHeight: 100,
-      bottomSize: 225, carTop: -25, setPadding: 14
+      lrfeStackWidth: 109,
+      carStackWidth: 225,
+      carWidth: 225,
+      carHeight: 100,
+      bottomSize: 225,
+      carTop: -25,
+      setPadding: 14
     };
   
   const DEFAULT = {
@@ -81,6 +96,7 @@ async function main() {
     const timestampPath = fm.joinPath(depPath, 'lastUpdated.txt');
     const currentDate = new Date().toISOString().slice(0, 13);
     const lastUpdatedDate = fm.fileExists(timestampPath) ? fm.readString(timestampPath) : '';
+  
     if (!fm.fileExists(modulePath) || lastUpdatedDate !== currentDate) {
       const moduleJs = await new Request(`${rootUrl}/module/_95du.js`).load();
       fm.write(modulePath, moduleJs);
@@ -100,18 +116,6 @@ async function main() {
     }
   };
   
-  // ===== 修改备案信息显示姓名 =====
-  const widgetMessage = `
-姓名: 文烨<br>
-驾驶证状态: 正常<br>
-发证单位: 广东省汕头市公安局交通警察支队<br>
-1，车辆检验有效期的日期和累积记分。<br>
-2，准驾车型，换证日期，车辆备案信息。<br>
-3，支持多车辆、多次违章( 随机显示 )。<br>
-4，点击违章信息跳转查看违章详情、照片。<br>
-️注：Sign过期后点击组件上的车辆图片自动跳转到支付宝更新 Sign
-`;
-
   const previewWidget = async (family = 'medium') => {
     const modulePath = await module.webModule(scrUrl);
     const importedModule = importModule(modulePath);
@@ -135,10 +139,115 @@ async function main() {
     });
     req.load();
   };
+  
+  const widgetMessage = '1，车辆检验有效期的日期和累积记分。<br>2，准驾车型，换证日期，备案信息：〈ザㄩメ火华，驾驶证状态(正常)，广东省汕头市公安局交通警察支队。<br>3，支持多车辆、多次违章( 随机显示 )。<br>4，点击违章信息跳转查看违章详情、照片。<br>️注：Sign过期后点击组件上的车辆图片自动跳转到支付宝更新 Sign';
+  
+  
+  /**
+   * Download Update Script
+   * @param { string } string
+   * 检查苹果操作系统更新
+   * @returns {Promise<void>}
+   */
+  const updateVersion = async () => {
+    const index = await module.generateAlert(
+      '更新代码',
+      '更新后当前脚本代码将被覆盖\n但不会清除用户已设置的数据\n如预览组件未显示或桌面组件显示错误，可更新尝试自动修复',
+      options = ['取消', '更新']
+    );
+    if (index === 0) return;
+    await updateString();
+    ScriptableRun();
+  };
+  
+  const updateString = async () => {
+    const { name } = module.getFileInfo(scrUrl);
+    const modulePath = fm.joinPath(cacheStr, name);
+    const str = await module.httpRequest(scrUrl);
+    if (!str.includes('95度茅台')) {
+      module.notify('更新失败 ⚠️', '请检查网络或稍后再试');
+    } else {
+      const moduleDir = fm.joinPath(mainPath, 'Running');
+      if (fm.fileExists(moduleDir)) fm.remove(moduleDir);
+      fm.writeString(modulePath, str)
+      settings.version = version;
+      writeSettings(settings);
+    }
+  };
+  
+  /**
+   * 获取背景图片存储目录路径
+   * @returns {string} - 目录路径
+   */
+  const getBgImage = (image) => {
+    const filePath =  fm.joinPath(cacheImg, Script.name());
+    if (image) fm.writeImage(filePath, image);
+    return filePath;
+  };
+  
+  // ====== web start ======= //
+  const renderAppView = async (options) => {
+    const {
+      formItems = [],
+      avatarInfo,
+      previewImage
+    } = options;
     
- 
+    const [
+      authorAvatar,
+      appleHub_light,
+      appleHub_dark,
+      collectionCode,
+      cssStyle,
+      scriptTags
+    ] = await Promise.all([
+      module.getCacheImage(`${rootUrl}/img/icon/4qiao.png`),
+      module.getCacheImage(`${rootUrl}/img/picture/appleHub_white.png`),
+      module.getCacheImage(`${rootUrl}/img/picture/appleHub_black.png`),
+      module.getCacheImage(`${rootUrl}/img/picture/collectionCode.jpeg`),
+      module.getCacheData(`${rootUrl}/web/cssStyle.css`),
+      module.scriptTags()
+    ]);
+    
+    const avatarPath = fm.joinPath(cacheImg, 'userSetAvatar.png');
+    const userAvatar = fm.fileExists(avatarPath) ? await module.toBase64(fm.readImage(avatarPath)) : authorAvatar;
+    
+    /**
+     * 生成主菜单头像信息和弹窗的HTML内容
+     * @returns {string} 包含主菜单头像信息、弹窗和脚本标签的HTML字符串
+     */
+    const listItems = [
+      `<li>${updateDate}</li>`,
+      `<li>点击违章信息跳转到支付宝详情页面 ( Sign有效期内 )，可在设置中打开或关闭 ‼️</li>`,
+      `<li>性能优化，改进用户体验</li>`
+    ].join('\n');
+    
+    const mainMenu = module.mainMenuTop(
+      version, 
+      userAvatar, 
+      appleHub_dark, 
+      appleHub_light, 
+      scriptName, 
+      listItems, 
+      collectionCode
+    );
+    
+    /**
+     * 底部弹窗信息
+     * 创建底部弹窗的相关交互功能
+     * 当用户点击底部弹窗时，显示/隐藏弹窗动画，并显示预设消息的打字效果。
+     */
+    const widgetMessage = '1，车辆检验有效期的日期和累积记分。<br>2，准驾车型，换证日期，车辆备案信息。<br>3，支持多车辆、多次违章( 随机显示 )。<br>4，点击违章信息跳转查看违章详情、照片。<br>️注：Sign过期后点击组件上的车辆图片自动跳转到支付宝更新 Sign'
 
-
+    const popupHtml = module.buttonPopup({
+      settings,
+      widgetMessage,
+      formItems,
+      avatarInfo,
+      appleHub_dark,
+      appleHub_light,
+      toggle: true
+    });
     
     /**
      * 组件效果图预览
