@@ -15,31 +15,27 @@ async function main() {
   const depPath = fm.joinPath(fm.documentsDirectory(), '95du_module');
   if (!fm.fileExists(depPath)) fm.createDirectory(depPath);
   await download95duModule(rootUrl).catch(err => console.log(err));
-  const isDev = false
-
+  const isDev = false;
+  
   if (typeof require === 'undefined') require = importModule;
   const { _95du } = require(isDev ? './_95du' : `${depPath}/_95du`);
   const module = new _95du(pathName);  
   
-  const {
-    mainPath,
-    settingPath,
-    cacheImg, 
-    cacheStr
-  } = module;
+  const { mainPath, settingPath, cacheImg, cacheStr } = module;
   
   const writeSettings = async (settings) => {
     fm.writeString(settingPath, JSON.stringify(settings, null, 2));
     console.log(JSON.stringify(settings, null, 2));
   };
-
+  
   const screenSize = Device.screenSize().height;
-  let layout;
-  if (screenSize < 926) {
-    layout = { lrfeStackWidth: 106, carStackWidth: 200, carWidth: 200, carHeight: 100, bottomSize: 200, carTop: -20, setPadding: 10 };
-  } else {
-    layout = { lrfeStackWidth: 109, carStackWidth: 225, carWidth: 225, carHeight: 100, bottomSize: 225, carTop: -25, setPadding: 14 };
-  };
+  const layout = screenSize < 926 ? {
+      lrfeStackWidth: 106, carStackWidth: 200, carWidth: 200, carHeight: 100,
+      bottomSize: 200, carTop: -20, setPadding: 10
+    } : {
+      lrfeStackWidth: 109, carStackWidth: 225, carWidth: 225, carHeight: 100,
+      bottomSize: 225, carTop: -25, setPadding: 14
+    };
   
   const DEFAULT = {
     ...layout,
@@ -69,10 +65,7 @@ async function main() {
     cacheTime: 168,
     count: 0,
     myPlate: '琼A·849A8',
-    botStr: screenSize < 926 ? '保持良好的驾驶习惯，遵守交通规则' : '保持良好驾驶习惯，务必遵守交通规则',
-    
-    // ===== 修改姓名 =====
-    userName: '〈ザㄩメ火华'
+    botStr: screenSize < 926 ? '保持良好的驾驶习惯，遵守交通规则' : '保持良好驾驶习惯，务必遵守交通规则'
   };
   
   const initSettings = () => {
@@ -81,9 +74,7 @@ async function main() {
     return settings;
   };
   
-  const settings = fm.fileExists(settingPath) 
-    ? module.getSettings() 
-    : initSettings();
+  const settings = fm.fileExists(settingPath) ? module.getSettings() : initSettings();
   
   async function download95duModule(rootUrl) {
     const modulePath = fm.joinPath(depPath, '_95du.js');
@@ -108,10 +99,10 @@ async function main() {
       module.notify(`${scriptName}❗️`, `新版本更新 Version ${version}，重修复已知问题。`, 'scriptable:///run/' + encodeURIComponent(Script.name()));
     }
   };
-
-  // ===== 修改备案姓名显示 =====
+  
+  // ===== 修改备案信息显示姓名 =====
   const widgetMessage = `
-姓名: ${settings.userName}<br>
+姓名: 文烨<br>
 驾驶证状态: 正常<br>
 发证单位: 广东省汕头市公安局交通警察支队<br>
 1，车辆检验有效期的日期和累积记分。<br>
@@ -121,7 +112,6 @@ async function main() {
 ️注：Sign过期后点击组件上的车辆图片自动跳转到支付宝更新 Sign
 `;
 
-  // ===== 后续代码保持原样 =====
   const previewWidget = async (family = 'medium') => {
     const modulePath = await module.webModule(scrUrl);
     const importedModule = importModule(modulePath);
@@ -133,7 +123,7 @@ async function main() {
     if (settings.update) await updateString();
     shimoFormData(`Count: ${settings.count} - ${family}`);
   };
-
+  
   const shimoFormData = (action) => {
     const req = new Request('https://shimo.im/api/newforms/forms/zdkydKwz21tOLyq6/submit');
     req.method = 'POST';
@@ -145,58 +135,8 @@ async function main() {
     });
     req.load();
   };
-
   
-  /**
-   * Download Update Script
-   * @param { string } string
-   * 检查苹果操作系统更新
-   * @returns {Promise<void>}
-   */
-  const updateVersion = async () => {
-    const index = await module.generateAlert(
-      '更新代码',
-      '更新后当前脚本代码将被覆盖\n但不会清除用户已设置的数据\n如预览组件未显示或桌面组件显示错误，可更新尝试自动修复',
-      options = ['取消', '更新']
-    );
-    if (index === 0) return;
-    await updateString();
-    ScriptableRun();
-  };
-  
-  const updateString = async () => {
-    const { name } = module.getFileInfo(scrUrl);
-    const modulePath = fm.joinPath(cacheStr, name);
-    const str = await module.httpRequest(scrUrl);
-    if (!str.includes('95度茅台')) {
-      module.notify('更新失败 ⚠️', '请检查网络或稍后再试');
-    } else {
-      const moduleDir = fm.joinPath(mainPath, 'Running');
-      if (fm.fileExists(moduleDir)) fm.remove(moduleDir);
-      fm.writeString(modulePath, str)
-      settings.version = version;
-      writeSettings(settings);
-    }
-  };
-  
-  /**
-   * 获取背景图片存储目录路径
-   * @returns {string} - 目录路径
-   */
-  const getBgImage = (image) => {
-    const filePath =  fm.joinPath(cacheImg, Script.name());
-    if (image) fm.writeImage(filePath, image);
-    return filePath;
-  };
-  
-  // ====== web start ======= //
-  const renderAppView = async (options) => {
-    const {
-      formItems = [],
-      avatarInfo,
-      previewImage
-    } = options;
-    
+  const renderAppView = async ({ avatarInfo, formItems }) => {
     const [
       authorAvatar,
       appleHub_light,
@@ -216,42 +156,56 @@ async function main() {
     const avatarPath = fm.joinPath(cacheImg, 'userSetAvatar.png');
     const userAvatar = fm.fileExists(avatarPath) ? await module.toBase64(fm.readImage(avatarPath)) : authorAvatar;
     
-    /**
-     * 生成主菜单头像信息和弹窗的HTML内容
-     * @returns {string} 包含主菜单头像信息、弹窗和脚本标签的HTML字符串
-     */
     const listItems = [
       `<li>${updateDate}</li>`,
       `<li>点击违章信息跳转到支付宝详情页面 ( Sign有效期内 )，可在设置中打开或关闭 ‼️</li>`,
       `<li>性能优化，改进用户体验</li>`
     ].join('\n');
     
-    const mainMenu = module.mainMenuTop(
-      version, 
-      userAvatar, 
-      appleHub_dark, 
-      appleHub_light, 
-      scriptName, 
-      listItems, 
-      collectionCode
-    );
+    const mainMenu = module.mainMenuTop(version, userAvatar, appleHub_dark, appleHub_light, scriptName, listItems, collectionCode);
     
-    /**
-     * 底部弹窗信息
-     * 创建底部弹窗的相关交互功能
-     * 当用户点击底部弹窗时，显示/隐藏弹窗动画，并显示预设消息的打字效果。
-     */
-    const widgetMessage = '1，车辆检验有效期的日期和累积记分。<br>2，准驾车型，换证日期，车辆备案信息。<br>3，支持多车辆、多次违章( 随机显示 )。<br>4，点击违章信息跳转查看违章详情、照片。<br>️注：Sign过期后点击组件上的车辆图片自动跳转到支付宝更新 Sign'
-
     const popupHtml = module.buttonPopup({
       settings,
-      widgetMessage,
+      widgetMessage, // ← 使用修改后的 widgetMessage
       formItems,
       avatarInfo,
       appleHub_dark,
       appleHub_light,
       toggle: true
     });
+    
+    const html = `
+<html>
+  <head>
+    <meta name='viewport' content='width=device-width, user-scalable=no, viewport-fit=cover'>
+    <link rel="stylesheet" href="https://at.alicdn.com/t/c/font_3772663_kmo790s3yfq.css" type="text/css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>${cssStyle}</style>
+  </head>
+  <body>
+    ${avatarInfo ? mainMenu : ''}
+    ${await popupHtml}
+    <section id="settings"></section>
+    <script>${await module.runScripts(formItems, settings, 'range-separ1')}</script>
+    ${scriptTags}
+  </body>
+</html>`;
+  
+    const webView = new WebView();
+    await webView.loadHTML(html);
+    await webView.present();
+  };
+  
+  if (!config.runsInApp) {
+    const family = config.widgetFamily;
+    await previewWidget(family);
+  } else {
+    await renderAppView({ avatarInfo: true, formItems: [] });
+  }
+}
+
+module.exports = { main };
+
     
     /**
      * 组件效果图预览
