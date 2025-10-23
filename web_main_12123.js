@@ -174,35 +174,7 @@ async function main() {
       toggle: true
     });
     
-    const html = `
-<html>
-  <head>
-    <meta name='viewport' content='width=device-width, user-scalable=no, viewport-fit=cover'>
-    <link rel="stylesheet" href="https://at.alicdn.com/t/c/font_3772663_kmo790s3yfq.css" type="text/css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>${cssStyle}</style>
-  </head>
-  <body>
-    ${avatarInfo ? mainMenu : ''}
-    ${await popupHtml}
-    <section id="settings"></section>
-    <script>${await module.runScripts(formItems, settings, 'range-separ1')}</script>
-    ${scriptTags}
-  </body>
-</html>`;
-  
-    const webView = new WebView();
-    await webView.loadHTML(html);
-    await webView.present();
-  };
-  
-  if (!config.runsInApp) {
-    const family = config.widgetFamily;
-    await previewWidget(family);
-  } else {
-    await renderAppView({ avatarInfo: true, formItems: [] });
-  }
-}
+ 
 
 
     
