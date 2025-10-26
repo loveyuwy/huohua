@@ -41,8 +41,8 @@ const appList = [
   }
 ];
 
-// 增强版请求函数 - 优化微信专用检测
-async function enhancedFetch(app, retries = 3, initialDelay = 1000) {
+// 增强版请求函数 - 优化超时
+async function enhancedFetch(app) {
   // 为微信使用专用API列表
   const isWeChat = app.bundleId === "com.tencent.xin";
   
@@ -58,46 +58,41 @@ async function enhancedFetch(app, retries = 3, initialDelay = 1000) {
   
   let lastError;
   
-  for (let attempt = 0; attempt < retries; attempt++) {
-    for (const [index, url] of urls.entries()) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        
-        // 添加随机延迟避免请求风暴
-        if (index > 0) {
-          await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 200));
-        }
-        
-        const response = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        
-        if (response.status === 200) {
-          const data = await response.json();
-          if (data.results && data.results.length > 0) {
-            const version = data.results[0].version;
-            console.log(`✅ ${app.icon} ${app.name} 成功获取版本: ${version} (${url})`);
-            return version;
-          } else {
-            throw new Error(`API返回空数据 (${url})`);
-          }
-        } else {
-          throw new Error(`HTTP ${response.status} (${url})`);
-        }
-      } catch (error) {
-        lastError = error;
-        console.log(`⚠️ ${app.icon} ${app.name} 请求异常 [尝试${attempt+1}/${retries}]: ${error.message}`);
+  // 移除外层重试循环，只尝试所有API地址各一次
+  for (const [index, url] of urls.entries()) {
+    try {
+      const controller = new AbortController();
+      // 将单个请求超时缩短为 3 秒
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
+      // 添加随机延迟避免请求风暴
+      if (index > 0) {
+        await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 200));
       }
-    }
-    
-    // 指数退避策略
-    if (attempt < retries - 1) {
-      const delay = initialDelay * Math.pow(2, attempt);
-      console.log(`⏳ ${app.icon} ${app.name} 等待 ${delay}ms 后重试...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (response.status === 200) {
+        const data = await response.json();
+        if (data.results && data.results.length > 0) {
+          const version = data.results[0].version;
+          console.log(`✅ ${app.icon} ${app.name} 成功获取版本: ${version} (${url})`);
+          return version;
+        } else {
+          throw new Error(`API返回空数据 (${url})`);
+        }
+      } else {
+        throw new Error(`HTTP ${response.status} (${url})`);
+      }
+    } catch (error) {
+      lastError = error;
+      // 记录错误，但继续尝试下一个URL
+      console.log(`⚠️ ${app.icon} ${app.name} 请求异常: ${error.message}`);
     }
   }
   
+  // 如果所有URL都失败了，则抛出最后的错误
   throw new Error(`所有API请求失败: ${lastError?.message || '未知错误'}`);
 }
 
