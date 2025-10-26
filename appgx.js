@@ -4,29 +4,36 @@
 
 const appList = [
   // 代理工具
-  { 
-    name: "Shadowrocket", 
+  {
+    name: "Shadowrocket",
     bundleId: "com.liguangming.Shadowrocket",
     icon: "🚀",
     category: "代理工具"
   },
-  { 
-    name: "Surge", 
+  {
+    name: "Surge",
     bundleId: "com.nssurge.inc.surge-ios",
     icon: "⚡️",
     category: "代理工具",
     fallbackUrl: "https://itunes.apple.com/us/lookup?bundleId=com.nssurge.inc.surge-ios"
   },
-  { 
-    name: "Loon", 
+  {
+    name: "Loon",
     bundleId: "com.ruikq.decar",
     icon: "🎈",
     category: "代理工具",
     fallbackUrl: "https://itunes.apple.com/us/lookup?bundleId=com.ruikq.decar"
   },
+  {
+    name: "Quantumult X",
+    bundleId: "com.crossutility.quantumult-x",
+    icon: "🌀",
+    category: "代理工具",
+    fallbackUrl: "https://itunes.apple.com/us/lookup?bundleId=com.crossutility.quantumult-x"
+  },
   // 微信 - 添加香港API作为首选
-  { 
-    name: "微信", 
+  {
+    name: "微信",
     bundleId: "com.tencent.xin",
     icon: "💬",
     category: "社交应用",
@@ -238,3 +245,4 @@ async function enhancedFetch(app, retries = 3, initialDelay = 1000) {
   console.log("=".repeat(40));
   $done();
 })();
+
