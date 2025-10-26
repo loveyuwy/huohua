@@ -29,7 +29,7 @@ const appList = [
   },
   {
     name: "Quantumult X",
-    bundleId: "com.crossutility.quantumult-x", // 您提供的 bundleId
+    bundleId: "com.crossutility.quantumult-x",
     icon: "🌀", 
     category: "代理工具",
     fallbackUrl: "https://itunes.apple.com/us/lookup?bundleId=com.crossutility.quantumult-x"
