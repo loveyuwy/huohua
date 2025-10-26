@@ -27,6 +27,13 @@ const appList = [
     category: "代理工具",
     fallbackUrl: "https://itunes.apple.com/us/lookup?bundleId=com.ruikq.decar"
   },
+  {
+    name: "Quantumult X",
+    bundleId: "com.crossutility.quantumult-x", // 您提供的 bundleId
+    icon: "🌀", 
+    category: "代理工具",
+    fallbackUrl: "https://itunes.apple.com/us/lookup?bundleId=com.crossutility.quantumult-x"
+  },
   // 微信 - 添加香港API作为首选
   {
     name: "微信",
@@ -38,7 +45,6 @@ const appList = [
 ];
 
 // 增强版请求函数 - 优化微信专用检测
-// (此函数在 Quantumult X 中可正常工作)
 async function enhancedFetch(app, retries = 3, initialDelay = 1000) {
   // 为微信使用专用API列表
   const isWeChat = app.bundleId === "com.tencent.xin";
@@ -251,4 +257,5 @@ async function enhancedFetch(app, retries = 3, initialDelay = 1000) {
   console.log("=".repeat(40));
   $done();
 })();
+
 
