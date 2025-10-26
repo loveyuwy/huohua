@@ -1,5 +1,5 @@
-// 名称: 增强版代理工具 & 微信更新检测 (并行版)
-// 描述: 应用更新检测脚本 (使用 Promise.allSettled 并行检测)
+// 名称: 增强版代理工具 & 微信更新检测
+// 描述: 应用更新检测脚本
 // 作者: 〈ザㄩメ火华
 
 const appList = [
@@ -9,6 +9,7 @@ const appList = [
     bundleId: "com.liguangming.Shadowrocket",
     icon: "🚀",
     category: "代理工具"
+    // (无 fallbackUrl, 默认尝试 US/CN/US)
   },
   {
     name: "Surge",
@@ -22,14 +23,16 @@ const appList = [
     bundleId: "com.ruikq.decar",
     icon: "🎈",
     category: "代理工具",
-    fallbackUrl: "https://itunes.apple.com/us/lookup?bundleId=com.ruikq.decar"
+    // --- 修改：优先使用香港 API ---
+    fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.ruikq.decar" 
   },
   {
     name: "Quantumult X",
     bundleId: "com.crossutility.quantumult-x",
     icon: "🌀",
     category: "代理工具",
-    fallbackUrl: "https://itunes.apple.com/us/lookup?bundleId=com.crossutility.quantumult-x"
+    // --- 修改：优先使用香港 API ---
+    fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.crossutility.quantumult-x"
   },
   // 微信 - 添加香港API作为首选
   {
@@ -46,11 +49,13 @@ async function enhancedFetch(app) {
   const isWeChat = app.bundleId === "com.tencent.xin";
   
   const urls = isWeChat ? [
+    // 微信专用列表 (因为 fallbackUrl 也是 HK, 所以第一个和第三个一样, 但没关系)
     "https://itunes.apple.com/hk/lookup?bundleId=com.tencent.xin", // 香港API
     "https://itunes.apple.com/cn/lookup?bundleId=com.tencent.xin", // 中国API
     "https://itunes.apple.com/us/lookup?bundleId=com.tencent.xin"  // 美国API
   ] : [
-    app.fallbackUrl || `https://itunes.apple.com/lookup?bundleId=${app.bundleId}`,
+    // 默认列表
+    app.fallbackUrl || `https://itunes.apple.com/lookup?bundleId=${app.bundleId}`, // 优先使用 fallbackUrl (现在是 HK)
     `https://itunes.apple.com/cn/lookup?bundleId=${app.bundleId}`,
     `https://itunes.apple.com/us/lookup?bundleId=${app.bundleId}`
   ];
@@ -124,7 +129,7 @@ async function enhancedFetch(app) {
           status: '首次记录'
         });
       } else if (savedVersion !== latest) {
-        hasUpdate = true;
+        hasUpdate = true; // 标记有更新
         results.updated[app.category].push({
           app,
           oldVersion: savedVersion,
@@ -154,9 +159,10 @@ async function enhancedFetch(app) {
   const now = new Date();
   const executionTime = ((Date.now() - startTime) / 1000).toFixed(1);
   
-  if (hasUpdate || results.failed.length > 0) {
+  // 仅在 hasUpdate 为 true 时才发送通知
+  if (hasUpdate) {
     const title = "📱 应用更新检测报告";
-    let subtitle = hasUpdate ? "✨ 发现应用更新" : "⚠️ 检测到查询异常";
+    let subtitle = "✨ 发现应用更新";
     
     let body = "";
     let hasContent = false;
@@ -174,24 +180,23 @@ async function enhancedFetch(app) {
       }
     }
     
-    // 当前版本
+    // 当前版本 (附加信息)
     if (results.current.length > 0) {
       if (hasContent) body += "\n";
-      body += `✅ 当前最新版本:\n`;
+      body += `✅ 其他应用 (最新版):\n`;
       body += results.current.map(c => 
         `${c.app.icon} ${c.app.name}: ${c.version}${c.status === '首次记录' ? ' (首次记录)' : ''}`
       ).join("\n");
       hasContent = true;
     }
     
-    // 失败应用
+    // 失败应用 (附加信息)
     if (results.failed.length > 0) {
       if (hasContent) body += "\n";
       body += `❌ 查询失败:\n`;
       body += results.failed.map(f => 
-        `${f.app.icon} ${f.app.name}: ${f.error}`
+        `${f.app.icon} ${f.app.name}: 查询失败` // 简化失败信息
       ).join("\n");
-      body += "\nℹ️ 可能是网络问题或API限制";
       hasContent = true;
     }
     
@@ -217,7 +222,7 @@ async function enhancedFetch(app) {
   }
   
   
-  // 调试日志
+  // 调试日志 (始终打印)
   console.log("=".repeat(40));
   console.log(`应用更新检测完成 (${executionTime}s)`);
   
@@ -228,10 +233,12 @@ async function enhancedFetch(app) {
         console.log(`  ${u.app.icon} ${u.app.name}: ${u.oldVersion} → ${u.newVersion}`);
       });
     }
+  } else {
+    console.log("✨ 未发现应用更新");
   }
   
   if (results.current.length > 0) {
-    console.log("✅ 当前最新版本:");
+    console.log("✅ 检查成功的应用 (最新版):");
     results.current.forEach(c => {
       console.log(`  ${c.app.icon} ${c.app.name}: ${c.version}${c.status === '首次记录' ? ' (首次记录)' : ''}`);
     });
