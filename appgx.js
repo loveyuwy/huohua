@@ -1,4 +1,4 @@
-// 名称: 增强版代理工具 & 微信更新检测
+// 名称: 增强版代理工具 & 微信更新检测 (并行版)
 // 描述: 应用更新检测脚本
 // 作者: 〈ザㄩメ火华
 
@@ -41,9 +41,8 @@ const appList = [
   }
 ];
 
-// 增强版请求函数 - 优化超时
+// 增强版请求函数 - 优化超时 (无重试)
 async function enhancedFetch(app) {
-  // 为微信使用专用API列表
   const isWeChat = app.bundleId === "com.tencent.xin";
   
   const urls = isWeChat ? [
@@ -58,16 +57,13 @@ async function enhancedFetch(app) {
   
   let lastError;
   
-  // 移除外层重试循环，只尝试所有API地址各一次
   for (const [index, url] of urls.entries()) {
     try {
       const controller = new AbortController();
-      // 将单个请求超时缩短为 3 秒
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒超时
       
-      // 添加随机延迟避免请求风暴
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 200));
+        await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 200));
       }
       
       const response = await fetch(url, { signal: controller.signal });
@@ -78,7 +74,7 @@ async function enhancedFetch(app) {
         if (data.results && data.results.length > 0) {
           const version = data.results[0].version;
           console.log(`✅ ${app.icon} ${app.name} 成功获取版本: ${version} (${url})`);
-          return version;
+          return { app, version }; // 返回 app 和 version
         } else {
           throw new Error(`API返回空数据 (${url})`);
         }
@@ -87,13 +83,12 @@ async function enhancedFetch(app) {
       }
     } catch (error) {
       lastError = error;
-      // 记录错误，但继续尝试下一个URL
       console.log(`⚠️ ${app.icon} ${app.name} 请求异常: ${error.message}`);
     }
   }
   
   // 如果所有URL都失败了，则抛出最后的错误
-  throw new Error(`所有API请求失败: ${lastError?.message || '未知错误'}`);
+  throw new Error(`[${app.name}] 所有API请求失败: ${lastError?.message || '未知错误'}`);
 }
 
 (async () => {
@@ -106,14 +101,23 @@ async function enhancedFetch(app) {
   
   const startTime = Date.now();
   
-  for (const app of appList) {
-    try {
-      const latest = await enhancedFetch(app);
+  // --- 并行执行所有请求 ---
+  const promises = appList.map(app => enhancedFetch(app));
+  const outcomes = await Promise.allSettled(promises);
+  
+  const writePromises = [];
+
+  // --- 处理所有结果 ---
+  outcomes.forEach((outcome, index) => {
+    const app = appList[index]; // 确保 app 对象按顺序对应
+    
+    if (outcome.status === 'fulfilled') {
+      const { version: latest } = outcome.value;
       const key = `app_ver_${app.bundleId}`;
       const savedVersion = $persistentStore.read(key);
       
       if (!savedVersion) {
-        await $persistentStore.write(latest, key);
+        writePromises.push($persistentStore.write(latest, key));
         results.current.push({
           app,
           version: latest,
@@ -126,7 +130,7 @@ async function enhancedFetch(app) {
           oldVersion: savedVersion,
           newVersion: latest
         });
-        await $persistentStore.write(latest, key);
+        writePromises.push($persistentStore.write(latest, key));
       } else {
         results.current.push({
           app,
@@ -134,14 +138,17 @@ async function enhancedFetch(app) {
           status: '最新版'
         });
       }
-    } catch (error) {
+    } else { // outcome.status === 'rejected'
       results.failed.push({
         app,
-        error: error.message
+        error: outcome.reason.message
       });
     }
-  }
-  
+  });
+
+  // 等待所有 $persistentStore.write 操作完成
+  await Promise.all(writePromises);
+  // --- 结果处理完毕 ---
 
   // 生成通知内容
   const now = new Date();
