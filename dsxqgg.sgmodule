@@ -10,13 +10,11 @@ DOMAIN-SUFFIX,udpolimenew.baidu.com,REJECT
 DOMAIN-SUFFIX,n.sigmob.cn,REJECT
 DOMAIN-SUFFIX,tracktp.sigmob.cn,REJECT
 DOMAIN-SUFFIX,wcp.taobao.com,REJECT
-DOMAIN-SUFFIX,open.e.kuaishou.cn,REJECT
 DOMAIN,beacon-ad.ztgame.com,REJECT
 DOMAIN,qzs.gdtimg.com,REJECT
 DOMAIN,mi.gdt.qq.com,REJECT
 DOMAIN,rtbcallback.sigmob.cn,REJECT
 DOMAIN,win.gdt.qq.com,REJECT
-DOMAIN,open.e.kuaishou.com,REJECT
 DOMAIN-SUFFIX,p66-ad.adkwai.com,REJECT
 
 [Map Local]
