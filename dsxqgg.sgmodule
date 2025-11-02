@@ -1,6 +1,8 @@
 #!name=大师兄去广告
 #!desc=去除开屏和弹窗广告
 
+
+
 [Rule]
 DOMAIN-SUFFIX,adservice.sigmob.cn,REJECT
 DOMAIN-SUFFIX,sdk.e.qq.com,REJECT
