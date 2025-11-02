@@ -1,5 +1,6 @@
 #!name=大师兄去广告
 #!desc=去除开屏和弹窗广告
+#!category=去广告
 
 [Rule]
 DOMAIN-SUFFIX,adservice.sigmob.cn,REJECT
@@ -10,17 +11,20 @@ DOMAIN-SUFFIX,udpolimenew.baidu.com,REJECT
 DOMAIN-SUFFIX,n.sigmob.cn,REJECT
 DOMAIN-SUFFIX,tracktp.sigmob.cn,REJECT
 DOMAIN-SUFFIX,wcp.taobao.com,REJECT
-DOMAIN-SUFFIX,open.e.kuaishou.cn,REJECT
+DOMAIN-SUFFIX,open.e.kuaishou.cn,REJECT-TINYGIF
 DOMAIN,beacon-ad.ztgame.com,REJECT
 DOMAIN,qzs.gdtimg.com,REJECT
-DOMAIN-SUFFIX,mi.gdt.qq.com,REJECT
+DOMAIN-SUFFIX,mi.gdt.qq.com,REJECT-TINYGIF
 DOMAIN,rtbcallback.sigmob.cn,REJECT
 DOMAIN,win.gdt.qq.com,REJECT
-DOMAIN-SUFFIX,open.e.kuaishou.com,REJECT
+DOMAIN-SUFFIX,open.e.kuaishou.com,REJECT-TINYGIF
 DOMAIN-SUFFIX,p66-ad.adkwai.com,REJECT
 
 [Map Local]
 ^https:\/\/(sdk\.e\.qq\.com|dc\.sigmob\.cn|cnlogs\.umengcloud\.com|resolve\.umeng\.com) data-type=text data="{}"
 
+[Script]
+阻断请求 = type=http-request, pattern=^https:\/\/(?:open\.e\.kuaishou\.(?:c[no]m|cn)|mi\.gdt\.qq\.com), script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/zd.js, requires-body=true, max-size=0, script-update-interval=0, timeout=60
+
 [MITM]
-hostname = %APPEND% sdk.e.qq.com, resolve.umeng.com, cnlogs.umengcloud.com, dc.sigmob.cn
+hostname = %APPEND% sdk.e.qq.com, resolve.umeng.com, cnlogs.umengcloud.com, dc.sigmob.cn, mi.gdt.qq.com, open.e.kuaishou.com
