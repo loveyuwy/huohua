@@ -9,21 +9,20 @@ const appList = [
     bundleId: "com.liguangming.Shadowrocket",
     icon: "🚀",
     category: "代理工具"
-    // (无 fallbackUrl, 默认尝试 US/CN/US)
   },
   {
     name: "Surge",
     bundleId: "com.nssurge.inc.surge-ios",
     icon: "⚡️",
     category: "代理工具",
-    fallbackUrl: "https://itunes.apple.com/us/lookup?bundleId=com.nssurge.inc.surge-ios"
+    // 修复：使用正确的 bundleId 和备用 URL
+    fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.nssurge.inc.surge"
   },
   {
     name: "Loon",
     bundleId: "com.ruikq.decar",
     icon: "🎈",
     category: "代理工具",
-    // --- 修改：优先使用香港 API ---
     fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.ruikq.decar" 
   },
   {
@@ -31,44 +30,62 @@ const appList = [
     bundleId: "com.crossutility.quantumult-x",
     icon: "🌀",
     category: "代理工具",
-    // --- 修改：优先使用香港 API ---
     fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.crossutility.quantumult-x"
   },
-  // 微信 - 添加香港API作为首选
+  // 微信
   {
     name: "微信",
     bundleId: "com.tencent.xin",
     icon: "💬",
     category: "社交应用",
-    fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.tencent.xin" // 改为香港API
+    fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.tencent.xin"
   }
 ];
 
-// 增强版请求函数 - 优化超时 (无重试)
+// 增强版请求函数 - 优化超时和错误处理
 async function enhancedFetch(app) {
   const isWeChat = app.bundleId === "com.tencent.xin";
+  const isSurge = app.name === "Surge";
   
-  const urls = isWeChat ? [
-    // 微信专用列表 (因为 fallbackUrl 也是 HK, 所以第一个和第三个一样, 但没关系)
-    "https://itunes.apple.com/hk/lookup?bundleId=com.tencent.xin", // 香港API
-    "https://itunes.apple.com/cn/lookup?bundleId=com.tencent.xin", // 中国API
-    "https://itunes.apple.com/us/lookup?bundleId=com.tencent.xin"  // 美国API
-  ] : [
-    // 默认列表
-    app.fallbackUrl || `https://itunes.apple.com/lookup?bundleId=${app.bundleId}`, // 优先使用 fallbackUrl (现在是 HK)
-    `https://itunes.apple.com/cn/lookup?bundleId=${app.bundleId}`,
-    `https://itunes.apple.com/us/lookup?bundleId=${app.bundleId}`
-  ];
+  // 为 Surge 添加备用 bundleId
+  const surgeAlternativeBundleId = "com.nssurge.inc.surge";
+  
+  let urls;
+  
+  if (isWeChat) {
+    urls = [
+      "https://itunes.apple.com/hk/lookup?bundleId=com.tencent.xin",
+      "https://itunes.apple.com/cn/lookup?bundleId=com.tencent.xin",
+      "https://itunes.apple.com/us/lookup?bundleId=com.tencent.xin"
+    ];
+  } else if (isSurge) {
+    // Surge 特殊处理：尝试多个 bundleId
+    urls = [
+      `https://itunes.apple.com/hk/lookup?bundleId=${app.bundleId}`,
+      `https://itunes.apple.com/hk/lookup?bundleId=${surgeAlternativeBundleId}`,
+      `https://itunes.apple.com/cn/lookup?bundleId=${app.bundleId}`,
+      `https://itunes.apple.com/cn/lookup?bundleId=${surgeAlternativeBundleId}`,
+      `https://itunes.apple.com/us/lookup?bundleId=${app.bundleId}`,
+      `https://itunes.apple.com/us/lookup?bundleId=${surgeAlternativeBundleId}`
+    ];
+  } else {
+    urls = [
+      app.fallbackUrl || `https://itunes.apple.com/lookup?bundleId=${app.bundleId}`,
+      `https://itunes.apple.com/cn/lookup?bundleId=${app.bundleId}`,
+      `https://itunes.apple.com/us/lookup?bundleId=${app.bundleId}`
+    ];
+  }
   
   let lastError;
   
   for (const [index, url] of urls.entries()) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒超时
+      const timeoutId = setTimeout(() => controller.abort(), 4000); // 增加到4秒超时
       
+      // 增加请求间隔，避免被限流
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 200));
+        await new Promise(resolve => setTimeout(resolve, 300 + Math.random() * 300));
       }
       
       const response = await fetch(url, { signal: controller.signal });
@@ -78,22 +95,22 @@ async function enhancedFetch(app) {
         const data = await response.json();
         if (data.results && data.results.length > 0) {
           const version = data.results[0].version;
+          const usedBundleId = url.includes(surgeAlternativeBundleId) ? surgeAlternativeBundleId : app.bundleId;
           console.log(`✅ ${app.icon} ${app.name} 成功获取版本: ${version} (${url})`);
-          return { app, version }; // 返回 app 和 version
+          return { app, version, usedBundleId };
         } else {
-          throw new Error(`API返回空数据 (${url})`);
+          throw new Error(`API返回空数据`);
         }
       } else {
-        throw new Error(`HTTP ${response.status} (${url})`);
+        throw new Error(`HTTP ${response.status}`);
       }
     } catch (error) {
       lastError = error;
-      console.log(`⚠️ ${app.icon} ${app.name} 请求异常: ${error.message}`);
+      console.log(`⚠️ ${app.icon} ${app.name} 请求异常 [${index + 1}/${urls.length}]: ${error.message}`);
     }
   }
   
-  // 如果所有URL都失败了，则抛出最后的错误
-  throw new Error(`[${app.name}] 所有API请求失败: ${lastError?.message || '未知错误'}`);
+  throw new Error(`所有API请求失败: ${lastError?.message || '未知错误'}`);
 }
 
 (async () => {
@@ -106,15 +123,15 @@ async function enhancedFetch(app) {
   
   const startTime = Date.now();
   
-  // --- 并行执行所有请求 ---
+  // 并行执行所有请求
   const promises = appList.map(app => enhancedFetch(app));
   const outcomes = await Promise.allSettled(promises);
   
   const writePromises = [];
 
-  // --- 处理所有结果 ---
+  // 处理所有结果
   outcomes.forEach((outcome, index) => {
-    const app = appList[index]; // 确保 app 对象按顺序对应
+    const app = appList[index];
     
     if (outcome.status === 'fulfilled') {
       const { version: latest } = outcome.value;
@@ -129,7 +146,7 @@ async function enhancedFetch(app) {
           status: '首次记录'
         });
       } else if (savedVersion !== latest) {
-        hasUpdate = true; // 标记有更新
+        hasUpdate = true;
         results.updated[app.category].push({
           app,
           oldVersion: savedVersion,
@@ -143,7 +160,7 @@ async function enhancedFetch(app) {
           status: '最新版'
         });
       }
-    } else { // outcome.status === 'rejected'
+    } else {
       results.failed.push({
         app,
         error: outcome.reason.message
@@ -151,51 +168,52 @@ async function enhancedFetch(app) {
     }
   });
 
-  // 等待所有 $persistentStore.write 操作完成
+  // 等待所有存储操作完成
   await Promise.all(writePromises);
-  // --- 结果处理完毕 ---
 
   // 生成通知内容
   const now = new Date();
   const executionTime = ((Date.now() - startTime) / 1000).toFixed(1);
   
-  // 仅在 hasUpdate 为 true 时才发送通知
-  if (hasUpdate) {
-    const title = "📱 应用更新检测报告";
-    let subtitle = "✨ 发现应用更新";
+  // 仅在 hasUpdate 为 true 或有失败的应用时才发送通知
+  if (hasUpdate || results.failed.length > 0) {
+    const title = hasUpdate ? "📱 发现应用更新" : "📱 应用检测报告";
+    let subtitle = hasUpdate ? "✨ 有应用可更新" : "ℹ️ 检测完成";
     
     let body = "";
     let hasContent = false;
     
     // 更新详情
-    for (const category of ["代理工具", "社交应用"]) {
-      const updates = results.updated[category];
-      if (updates.length > 0) {
-        if (hasContent) body += "\n";
-        body += `🆕 ${category}更新:\n`;
-        body += updates.map(u => 
-          `${u.app.icon} ${u.app.name}: ${u.oldVersion} → ${u.newVersion}`
-        ).join("\n");
-        hasContent = true;
+    if (hasUpdate) {
+      for (const category of ["代理工具", "社交应用"]) {
+        const updates = results.updated[category];
+        if (updates.length > 0) {
+          if (hasContent) body += "\n";
+          body += `🆕 ${category}更新:\n`;
+          body += updates.map(u => 
+            `${u.app.icon} ${u.app.name}: ${u.oldVersion} → ${u.newVersion}`
+          ).join("\n");
+          hasContent = true;
+        }
       }
     }
     
-    // 当前版本 (附加信息)
+    // 当前版本
     if (results.current.length > 0) {
       if (hasContent) body += "\n";
-      body += `✅ 其他应用 (最新版):\n`;
+      body += `✅ 最新版应用:\n`;
       body += results.current.map(c => 
         `${c.app.icon} ${c.app.name}: ${c.version}${c.status === '首次记录' ? ' (首次记录)' : ''}`
       ).join("\n");
       hasContent = true;
     }
     
-    // 失败应用 (附加信息)
+    // 失败应用
     if (results.failed.length > 0) {
       if (hasContent) body += "\n";
       body += `❌ 查询失败:\n`;
       body += results.failed.map(f => 
-        `${f.app.icon} ${f.app.name}: 查询失败` // 简化失败信息
+        `${f.app.icon} ${f.app.name}: 请检查网络或应用状态`
       ).join("\n");
       hasContent = true;
     }
@@ -211,18 +229,20 @@ async function enhancedFetch(app) {
       hour12: false
     })}`;
     
-    // 添加微信专用提示
-    if (results.updated["社交应用"].some(u => u.app.name === "微信")) {
-      body += "\n\n💡 微信提示: 国际版更新可能延迟，请确认App Store版本";
+    // 添加提示
+    if (results.failed.length > 0) {
+      body += `\n\n💡 提示: ${results.failed.length}个应用查询失败，可能因区域限制或网络问题`;
     }
     
-    body += "\n🔔 每日自动检测 | 上午8点10分";
+    body += "\n🔔 每日自动检测";
     
     $notification.post(title, subtitle, body);
+  } else {
+    // 没有更新且没有失败时，只记录日志
+    console.log("📱 所有应用均为最新版本，无需通知");
   }
   
-  
-  // 调试日志 (始终打印)
+  // 调试日志
   console.log("=".repeat(40));
   console.log(`应用更新检测完成 (${executionTime}s)`);
   
@@ -238,7 +258,7 @@ async function enhancedFetch(app) {
   }
   
   if (results.current.length > 0) {
-    console.log("✅ 检查成功的应用 (最新版):");
+    console.log("✅ 检查成功的应用:");
     results.current.forEach(c => {
       console.log(`  ${c.app.icon} ${c.app.name}: ${c.version}${c.status === '首次记录' ? ' (首次记录)' : ''}`);
     });
@@ -254,4 +274,3 @@ async function enhancedFetch(app) {
   console.log("=".repeat(40));
   $done();
 })();
-
