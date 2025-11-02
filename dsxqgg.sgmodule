@@ -15,7 +15,7 @@ DOMAIN-SUFFIX,wcp.taobao.com,REJECT
 DOMAIN-SUFFIX,open.e.kuaishou.cn,REJECT-DROP
 DOMAIN,beacon-ad.ztgame.com,REJECT
 DOMAIN,qzs.gdtimg.com,REJECT
-DOMAIN,mi.gdt.qq.com,DOMAIN-SUFFIX
+DOMAIN-SUFFIX,mi.gdt.qq.com,REJECT-DROP
 DOMAIN,rtbcallback.sigmob.cn,REJECT
 DOMAIN,win.gdt.qq.com,REJECT
 DOMAIN-SUFFIX,open.e.kuaishou.com,REJECT-DROP
