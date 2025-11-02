@@ -2,6 +2,8 @@
 #!desc=去除开屏和弹窗广告
 
 [Rule]
+DOMAIN,open.e.kuaishou.com,REJECT
+DOMAIN-SUFFIX,open.e.kuaishou.cn,REJECT
 DOMAIN-SUFFIX,adservice.sigmob.cn,REJECT
 DOMAIN-SUFFIX,sdk.e.qq.com,REJECT
 DOMAIN-SUFFIX,gdfp.gifshow.com,REJECT
