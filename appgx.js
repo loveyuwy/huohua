@@ -15,7 +15,6 @@ const appList = [
     bundleId: "com.nssurge.inc.surge-ios",
     icon: "⚡️",
     category: "代理工具",
-    // 修复：使用正确的 bundleId 和备用 URL
     fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.nssurge.inc.surge"
   },
   {
@@ -81,7 +80,7 @@ async function enhancedFetch(app) {
   for (const [index, url] of urls.entries()) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000); // 增加到4秒超时
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
       
       // 增加请求间隔，避免被限流
       if (index > 0) {
@@ -175,10 +174,10 @@ async function enhancedFetch(app) {
   const now = new Date();
   const executionTime = ((Date.now() - startTime) / 1000).toFixed(1);
   
-  // 仅在 hasUpdate 为 true 或有失败的应用时才发送通知
+  // 修改通知条件：只在有更新或查询失败时发送通知
   if (hasUpdate || results.failed.length > 0) {
-    const title = hasUpdate ? "📱 发现应用更新" : "📱 应用检测报告";
-    let subtitle = hasUpdate ? "✨ 有应用可更新" : "ℹ️ 检测完成";
+    const title = hasUpdate ? "📱 发现应用更新" : "❌ 应用检测失败";
+    let subtitle = hasUpdate ? "✨ 有应用可更新" : "⚠️ 部分应用查询失败";
     
     let body = "";
     let hasContent = false;
@@ -198,22 +197,22 @@ async function enhancedFetch(app) {
       }
     }
     
-    // 当前版本
-    if (results.current.length > 0) {
-      if (hasContent) body += "\n";
-      body += `✅ 最新版应用:\n`;
-      body += results.current.map(c => 
-        `${c.app.icon} ${c.app.name}: ${c.version}${c.status === '首次记录' ? ' (首次记录)' : ''}`
-      ).join("\n");
-      hasContent = true;
-    }
-    
     // 失败应用
     if (results.failed.length > 0) {
       if (hasContent) body += "\n";
       body += `❌ 查询失败:\n`;
       body += results.failed.map(f => 
-        `${f.app.icon} ${f.app.name}: 请检查网络或应用状态`
+        `${f.app.icon} ${f.app.name}: ${f.error}`
+      ).join("\n");
+      hasContent = true;
+    }
+    
+    // 当前版本（只有在有更新的情况下才显示）
+    if (hasUpdate && results.current.length > 0) {
+      if (hasContent) body += "\n";
+      body += `✅ 最新版应用:\n`;
+      body += results.current.map(c => 
+        `${c.app.icon} ${c.app.name}: ${c.version}`
       ).join("\n");
       hasContent = true;
     }
@@ -238,8 +237,8 @@ async function enhancedFetch(app) {
     
     $notification.post(title, subtitle, body);
   } else {
-    // 没有更新且没有失败时，只记录日志
-    console.log("📱 所有应用均为最新版本，无需通知");
+    // 没有更新且没有失败时，只记录日志，不发送通知
+    console.log("📱 所有应用均为最新版本且检测成功，无需通知");
   }
   
   // 调试日志
