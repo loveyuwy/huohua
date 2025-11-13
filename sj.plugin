@@ -14,14 +14,14 @@ enable_token_capture = switch, true, true, tag = 抓取Token开关, desc = 默�
 cron_time = input, "0 10,11,12 * * *", tag = 定时执行时间, desc = CRON表达式, 默认10,11,12点运行
 
 [Script]
-# 抓Token脚本
-http-response ^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjtoken.js, requires-body=true, timeout=60, tag=声荐自动抓取token, enable = {enable_token_capture}
+# 抓Token脚本 (这个工作正常)
+http-response ^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjtoken.js, requires-body=true, timeout=60, tag=SJ-Token-Capture, enable = {enable_token_capture}
 
-# 定时执行脚本 (使用 raw.githubusercontent.com URL)
-cron {cron_time} script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjqd.js, timeout=60, tag=声荐每日任务(定时)
+# 定时执行脚本 (使用 raw.github... URL, 并添加了 enable = true 和英文 tag)
+cron {cron_time} script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjqd.js, timeout=60, tag=SJ-Task-Auto, enable = true
 
-# “立即执行”对应的脚本 (使用 fastly.jsdelivr.net URL)
-cron * * * * * script-path=https://fastly.jsdelivr.net/gh/loveyuwy/hao@main/sjqd.js, timeout=60, tag=声荐每日任务(手动), enable = {run_now}
+# “立即执行”对应的脚本 (使用 fastly.jsdelivr... URL, 和英文 tag)
+cron * * * * * script-path=https://fastly.jsdelivr.net/gh/loveyuwy/hao@main/sjqd.js, timeout=60, tag=SJ-Task-Manual, enable = {run_now}
 
 [MITM]
 hostname = xcx.myinyun.com
