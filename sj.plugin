@@ -20,8 +20,8 @@ http-response ^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login script-path=htt
 # 定时执行脚本 (使用 {cron_time} )
 cron {cron_time} script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjqd.js, timeout=60, tag=声荐每日任务(定时)
 
-# “立即执行”对应的脚本 (使用每分钟)
-cron * * * * * script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjqd.js, timeout=60, tag=声荐每日任务(手动), enable = {run_now}
+# “立即执行”对应的脚本 (注意URL末尾加了 ?run=now)
+cron * * * * * script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjqd.js?run=now, timeout=60, tag=声荐每日任务(手动), enable = {run_now}
 
 [MITM]
 hostname = xcx.myinyun.com
