@@ -10,18 +10,18 @@ run_now = switch, false, false, tag = 立即执行(用完即关), desc = 开启�
 # 2. 抓Token开关
 enable_token_capture = switch, true, true, tag = 抓取Token开关, desc = 默认开启。抓取Token成功后, 可关闭此开关
 
-# 3. 定时执行时间 (变量名已修改)
+# 3. 定时执行时间
 cron_time = input, "0 10,11,12 * * *", tag = 定时执行时间, desc = CRON表达式, 默认10,11,12点运行
 
 [Script]
 # 抓Token脚本
 http-response ^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjtoken.js, requires-body=true, timeout=60, tag=声荐自动抓取token, enable = {enable_token_capture}
 
-# 定时执行脚本 (使用 {cron_time} )
+# 定时执行脚本 (使用 raw.githubusercontent.com URL)
 cron {cron_time} script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjqd.js, timeout=60, tag=声荐每日任务(定时)
 
-# “立即执行”对应的脚本 (注意URL末尾加了 ?run=now)
-cron * * * * * script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjqd.js?run=now, timeout=60, tag=声荐每日任务(手动), enable = {run_now}
+# “立即执行”对应的脚本 (使用 fastly.jsdelivr.net URL)
+cron * * * * * script-path=https://fastly.jsdelivr.net/gh/loveyuwy/hao@main/sjqd.js, timeout=60, tag=声荐每日任务(手动), enable = {run_now}
 
 [MITM]
 hostname = xcx.myinyun.com
