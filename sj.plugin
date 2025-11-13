@@ -21,7 +21,7 @@ http-response ^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login script-path=htt
 cron {cron_time} script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjqd.js, timeout=60, tag=SJ-Task-Auto, enable = true
 
 # “立即执行”对应的脚本 (使用 fastly.jsdelivr... URL, 和英文 tag)
-cron * * * * * script-path=https://fastly.jsdelivr.net/gh/loveyuwy/hao@main/sjqd.js, timeout=60, tag=SJ-Task-Manual, enable = {run_now}
+cron * * * * * script-path=https://fastly.jsdelivr.net/gh/loveyuwy/hao@main/sjqd1.js, timeout=60, tag=SJ-Task-Manual, enable = {run_now}
 
 [MITM]
 hostname = xcx.myinyun.com
