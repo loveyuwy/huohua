@@ -1,34 +1,30 @@
 #!name=声荐每日自动签到
-#!desc=微信小程序声荐每日签到加领取小红花，首次运行请打开微信声荐小程序，等收到获取token即可。日后提示token失效就再打开微信声荐小程序更新token。脚本签到时间默认10,11,12点运行，可自行修改。小程序后面要是出现卡顿或无法进入可关闭token抓取
+#!desc=微信小程序声荐每日签到加领取小红花，首次运行请打开微信声荐小程序，等收到获取token即可。日后提示token失效就再打开微信声荐小程序更新token。脚本签到时间默认10,11,12点运行，可自行修改。小程序后面要是出现卡顿或无法进入可关闭token抓取。
 #!author=〈ザㄩメ火华
 #!icon=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/SJ.png
 
 [Argument]
-# 开启/关闭 自动抓取Token, 默认开启, 抓到后可关闭
-enable_token_capture = switch, true, true, tag = 抓取Token开关, desc = 默认开启。抓取Token成功后, 可关闭此开关
+# 自动抓取 Token
+enable_token_capture = switch, true, true, tag = 抓取Token开关, desc = 默认开启。抓取成功后可关闭。
 
-# 主任务 CRON表达式, 默认10,11,12点运行
-cron = input, "0 10,11,12 * * *", tag = 主任务执行时间, desc = 主任务 CRON 表达式, 默认10,11,12点运行
+# 主任务定时（默认 10,11,12 点运行）
+cron = input, "0 10,11,12 * * *", tag = 主任务执行时间, desc = 主任务 CRON 表达式。
 
-# 新增：第二个每日任务的 CRON 表达式，默认同主任务
-cron1 = input, "0 10,11,12 * * *", tag = 次任务执行时间, desc = 次任务 CRON 表达式，默认10,11,12点运行
+# 次任务定时表达式，可自定义（例如 */10 * * * * * 每10秒执行一次）
+cron1 = input, "*/10 * * * * *", tag = 次任务执行时间, desc = CRON 表达式，默认每10秒运行一次。
 
-# 新增：次任务立即执行开关（打开会尝试立即触发一次，用完请关闭）
-sjqd1_run_now = switch, false, true, tag = 次任务立即执行, desc = 打开后会尝试立即触发一次次任务（执行后请关闭此开关）
+# 新增：次任务启停开关 —— 打开即运行，关闭即停止
+sjqd1_enable = switch, false, true, tag = 次任务开关, desc = 打开即开始执行次任务（按上方间隔运行），关闭立即停止。
 
 [Script]
-# 使用 {enable_token_capture} 变量控制抓取 token 的 http-response 规则
+# 自动抓取 Token
 http-response ^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjtoken.js, requires-body=true, timeout=60, tag=声荐自动抓取token, enable = {enable_token_capture}
 
-# 主每日任务（使用 {cron} 控制）
+# 主每日任务（签到+小红花）
 cron {cron} script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjqd.js, timeout=60, tag=声荐每日任务
 
-# 次每日任务（新的任务文件 sjqd1.js，使用 {cron1} 控制）
-cron {cron1} script-path=https://github.com/loveyuwy/hao/raw/refs/heads/main/sjqd1.js, timeout=60, tag=声荐每日任务1
-
-# 次任务立即执行开关 —— 打开后会把脚本设为启用，部分管理器在切换开关时会立即执行脚本（用完请关闭）
-# 说明：若你的环境需要通过“手动运行”或“启用即执行”来触发，请在管理器内启用此开关一次以触发立即执行，然后关闭。
-script-path=https://github.com/loveyuwy/hao/raw/refs/heads/main/sjqd1.js, timeout=60, tag=声荐每日任务1-立即执行, enable = {sjqd1_run_now}
+# 次每日任务（支持启停控制）
+cron {cron1} script-path=https://github.com/loveyuwy/hao/raw/refs/heads/main/sjqd1.js, timeout=60, tag=声荐每日任务1, enable = {sjqd1_enable}
 
 [MITM]
 hostname = xcx.myinyun.com
