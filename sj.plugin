@@ -10,11 +10,11 @@ enable_token_capture = switch, true, true, tag = 抓取Token开关, desc = 默�
 # 主任务定时（默认 10,11,12 点运行）
 cron = input, "0 10,11,12 * * *", tag = 主任务执行时间, desc = 主任务 CRON 表达式。
 
-# 次任务定时表达式，可自定义（例如 */10 * * * * * 每10秒执行一次）
-cron1 = input, "*/10 * * * * *", tag = 次任务执行时间, desc = CRON 表达式，默认每10秒运行一次。
+# 立即执行定时表达式，可自定义（例如 */5 * * * * * 每5秒执行一次）
+cron1 = input, "*/5 * * * * *", tag = 任务执行时间, desc = CRON 表达式，默认每5秒运行一次。
 
-# 新增：次任务启停开关 —— 打开即运行，关闭即停止
-sjqd1_enable = switch, false, true, tag = 次任务开关, desc = 打开即开始执行次任务（按上方间隔运行），关闭立即停止。
+# 新增：任务启停开关 —— 打开即运行，关闭即停止
+sjqd1_enable = switch, false, true, tag = 立即执行（收到通知后马上关闭）, desc = 打开即开始执行次任务（按上方间隔运行），关闭立即停止。
 
 [Script]
 # 自动抓取 Token
