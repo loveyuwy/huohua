@@ -17,4 +17,4 @@ birthday_data = input, "老婆@1@10-13;妈妈@0@05-20", tag=生日列表, desc=�
 
 [Script]
 # 注意：请确保 script-path 是你自己的脚本链接
-cron {cron_exp} script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/birthday_notify_v5.js, tag=生日提醒, argument=info={birthday_data}&advance={advance_days}
+cron {cron_exp} script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/srts.js, tag=生日提醒, argument=info={birthday_data}&advance={advance_days}
