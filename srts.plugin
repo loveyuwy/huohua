@@ -6,4 +6,4 @@ advance_days = input, 3
 birthday_data = input, 老婆@1@10-13;妈妈@0@05-20
 
 [Script]
-cron 0 28 1 * * * script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/srts.js, tag=生日提醒, argument=info={birthday_data}&advance={advance_days}
+cron 0 40 1 * * * script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/srts.js, tag=生日提醒, argument=info={birthday_data}&advance={advance_days}
