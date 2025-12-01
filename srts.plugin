@@ -2,6 +2,7 @@
 #!desc=基于离线农历算法，支持自定义提前 N 天通知。生日列？示例：妈妈@1@10-10;老婆@0@09-09，格式：名字@类型@日期，多人用分号";"隔开 (也可以用逗号: 名字,类型,日期，多人用分号";"隔开)，类型：0=公历, 1=农历
 #!author=〈ザㄩメ火华
 #!date=2025-12-01
+#!icon=https://raw.githubusercontent.com/Orz-3/mini/master/Color/birthday.png
 
 [Argument]
 # 1. 运行时间
