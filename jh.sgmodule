@@ -2,7 +2,7 @@
 #!desc=自用脚本集合
 
 [Script]
-app更新提醒 = type=cron,cronexp=0 8-22/5 * * *,timeout=30,debug=0,script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/appgx.js,script-update-interval=0
+app更新提醒 = type=cron,cronexp=0 8-23/3 * * *,timeout=30,debug=0,script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/appgx.js,script-update-interval=0
 双色球开奖结果 = type=cron,cronexp=30 22 * * *,script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/ssq.js,script-update-interval=0
 今日油价 = type=cron,cronexp=0 9 * * *,script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/jryj.js,script-update-interval=0,timeout=10,debug=0
 今日汇率 = type=cron,cronexp=0 9 * * *,script-path=https://raw.githubusercontent.com/Peng-YM/QuanX/master/Tasks/exchange.js,script-update-interval=0,timeout=10
