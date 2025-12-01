@@ -1,6 +1,7 @@
 #!name=生日提醒助手
-#!desc=支持自定义提前 N 天通知。生日列？示例：妈妈@1@10-10;老婆@0@09-09，格式：名字@类型@日期，多人用分号";"隔开 (也可以用逗号: 名字,类型,日期，多人用分号";"隔开)，类型：0=公历, 1=农历
-#!author=〈ザㄩメ火华
+#!desc=支持公历/农历生日提醒，可自定义提前天数。
+#!author=〈ザㄩメ火华 & Gemini
+#!icon=cake.fill
 #!date=2025-12-01
 
 [Argument]
@@ -10,10 +11,11 @@ cron_exp = input, "0 9 * * *", tag=运行时间, desc=Cron 表达式
 # 2. 提前天数
 advance_days = input, "3", tag=提前天数, desc=填写数字 (例如 3)
 
-# 3. 生日列表 (改为 input 类型，保证显示)
-# 注意：多人之间用英文分号 ";" 隔开
+# 3. 生日列表
+# 格式说明：名字@类型@日期 (类型 0=公历, 1=农历)
+# 多人之间用英文分号 ";" 隔开
 birthday_data = input, "老婆@1@10-13;妈妈@0@05-20", tag=生日列表, desc=格式: 名字@类型@日期，多人用分号";"隔开
 
 [Script]
-# 注意：请确保 script-path 是你自己的脚本链接
-cron {cron_exp} script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/srts.js, tag=生日提醒, argument=info={birthday_data}&advance={advance_days}
+# 重点修改：argument 的值加上了双引号 "..."，防止特殊字符导致解析错误
+cron {cron_exp} script-path=birthday.js, tag=生日提醒, argument="info={birthday_data}&advance={advance_days}"
