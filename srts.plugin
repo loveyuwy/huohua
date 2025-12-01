@@ -1,9 +1,10 @@
-#!name=生日提醒助手
-#!desc=测试版（确认 Argument 是否生效）
+#!name=生日提醒助手（Argument 终极测试版）
+#!desc=用于验证 Loon Argument 是否成功传参
+#!author=火华专用
 
 [Argument]
-advance_days = input, 3
-birthday_data = input, 老婆@1@10-13;妈妈@0@05-20
+advance_days = input, 3, tag=提前天数, desc=数字即可，例如 3
+birthday_data = input, 老婆@1@10-13;妈妈@0@05-20, tag=生日列表, desc=格式: 名字@类型@日期，多条用分号隔开
 
 [Script]
-cron 0 40 1 * * * script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/srts.js, tag=生日提醒, argument=info={birthday_data}&advance={advance_days}
+cron 0 28 1 * * * script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/srts-test.js, tag=Argument测试, argument=info={birthday_data}&advance={advance_days}
