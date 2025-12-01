@@ -1,16 +1,11 @@
 #!name=生日提醒助手
 #!desc=基于离线农历算法，支持自定义提前 N 天通知。
 #!author=〈ザㄩメ火华
-#!date=2025-12-01
+#!date=2025-12-02
 
 [Argument]
-# 1. 运行时间
-cron_exp = input, 0 9 * * *, tag=运行时间, desc=Cron 表达式
-
-# 2. 提前天数
+cron_exp = input, 0 20 1 * * *, tag=运行时间, desc=Cron 表达式
 advance_days = input, 3, tag=提前天数, desc=填写数字 (例如 3)
-
-# 3. 生日列表
 birthday_data = input, 老婆@1@10-13;妈妈@0@05-20, tag=生日列表, desc=格式: 名字@类型@日期，多人用分号";"隔开
 
 [Script]
