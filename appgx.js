@@ -1,5 +1,5 @@
-// 名称: 增强版代理工具 & 微信更新检测
-// 描述: 应用更新检测脚本
+// 名称: 增强版代理工具 & 微信更新检测 (修复回退问题版)
+// 描述: 应用更新检测脚本 - 增加版本号比对逻辑
 // 作者: 〈ザㄩメ火华
 
 const appList = [
@@ -40,6 +40,25 @@ const appList = [
     fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.tencent.xin"
   }
 ];
+
+// 版本号比较函数 (核心修复)
+// 返回 1: v1 > v2 (有新版本)
+// 返回 -1: v1 < v2 (API回退，忽略)
+// 返回 0: v1 == v2 (无变化)
+function compareVersions(v1, v2) {
+  if (!v1 || !v2) return 0;
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+  const len = Math.max(parts1.length, parts2.length);
+
+  for (let i = 0; i < len; i++) {
+    const num1 = parts1[i] || 0;
+    const num2 = parts2[i] || 0;
+    if (num1 > num2) return 1;
+    if (num1 < num2) return -1;
+  }
+  return 0;
+}
 
 // 增强版请求函数 - 优化超时和错误处理
 async function enhancedFetch(app) {
@@ -105,7 +124,7 @@ async function enhancedFetch(app) {
       }
     } catch (error) {
       lastError = error;
-      console.log(`⚠️ ${app.icon} ${app.name} 请求异常 [${index + 1}/${urls.length}]: ${error.message}`);
+      // console.log(`⚠️ ${app.icon} ${app.name} 请求异常 [${index + 1}/${urls.length}]: ${error.message}`);
     }
   }
   
@@ -138,26 +157,42 @@ async function enhancedFetch(app) {
       const savedVersion = $persistentStore.read(key);
       
       if (!savedVersion) {
+        // 首次运行，直接保存
         writePromises.push($persistentStore.write(latest, key));
         results.current.push({
           app,
           version: latest,
           status: '首次记录'
         });
-      } else if (savedVersion !== latest) {
-        hasUpdate = true;
-        results.updated[app.category].push({
-          app,
-          oldVersion: savedVersion,
-          newVersion: latest
-        });
-        writePromises.push($persistentStore.write(latest, key));
       } else {
-        results.current.push({
-          app,
-          version: latest,
-          status: '最新版'
-        });
+        // 核心修改：使用 compareVersions 判断
+        const compareResult = compareVersions(latest, savedVersion);
+        
+        if (compareResult === 1) { 
+          // 只有 latest > savedVersion 才算更新
+          hasUpdate = true;
+          results.updated[app.category].push({
+            app,
+            oldVersion: savedVersion,
+            newVersion: latest
+          });
+          writePromises.push($persistentStore.write(latest, key));
+        } else if (compareResult === -1) {
+          // API 返回了旧版本，忽略本次结果，保留本地较新版本
+          console.log(`⚠️ ${app.name} API数据滞后 (${latest} < ${savedVersion})，保持本地新版，跳过更新。`);
+          results.current.push({
+            app,
+            version: savedVersion, // 显示本地的最新版
+            status: 'API回退'
+          });
+        } else {
+          // 版本相同
+          results.current.push({
+            app,
+            version: latest,
+            status: '最新版'
+          });
+        }
       }
     } else {
       results.failed.push({
@@ -259,7 +294,8 @@ async function enhancedFetch(app) {
   if (results.current.length > 0) {
     console.log("✅ 检查成功的应用:");
     results.current.forEach(c => {
-      console.log(`  ${c.app.icon} ${c.app.name}: ${c.version}${c.status === '首次记录' ? ' (首次记录)' : ''}`);
+      // 增加状态显示，方便查看是否触发了 API 回退保护
+      console.log(`  ${c.app.icon} ${c.app.name}: ${c.version}${c.status === '首次记录' ? ' (首次记录)' : (c.status === 'API回退' ? ' (⚠️API数据旧，已忽略)' : '')}`);
     });
   }
   
