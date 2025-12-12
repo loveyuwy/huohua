@@ -1,4 +1,4 @@
-// 专门用于被外部调用的透明背景制作模块
+// 专门用于被外部调用的透明背景制作模块 (只针对中号/大号)
 // 包含了最新的 iPhone 机型数据
 
 async function main(baseDir) {
@@ -24,116 +24,78 @@ async function main(baseDir) {
   if (!phone) {
     const a = new Alert();
     a.title = "机型不匹配";
-    a.message = `您的截图高度为 ${height}，脚本中未找到匹配的 iPhone 尺寸数据。请检查截图是否原图，或尝试其他图片。`;
+    a.message = `您的截图高度为 ${height}，脚本中未找到匹配的 iPhone 尺寸数据。请检查截图是否原图。`;
     a.addAction("好的");
     await a.presentAlert();
     return;
   }
 
-  // 4. 选择位置
-  const pAlert = new Alert();
-  pAlert.title = "选择组件位置";
-  pAlert.message = "请选择你要放置组件的位置";
-  
+  // 4. 选择位置 (中号/大号通常只分 上/中/下)
   // 
-  // 定义通用位置
-  const positions = [
-    { name: "Top Left (左上)", val: "top-left" },
-    { name: "Top Right (右上)", val: "top-right" },
-    { name: "Middle Left (左中)", val: "middle-left" },
-    { name: "Middle Right (右中)", val: "middle-right" },
-    { name: "Bottom Left (左下)", val: "bottom-left" },
-    { name: "Bottom Right (右下)", val: "bottom-right" }
-  ];
+  const pAlert = new Alert();
+  pAlert.title = "第一步：选择位置";
+  pAlert.message = "请选择组件在屏幕垂直方向的位置";
   
-  // 简单模式：大号/中号通常只需要 上/中/下
-  const simplePositions = [
+  const positions = [
     { name: "顶部 (Top)", val: "top" },
     { name: "中间 (Middle)", val: "middle" },
     { name: "底部 (Bottom)", val: "bottom" }
   ];
 
-  simplePositions.forEach(p => pAlert.addAction(p.name));
-  positions.forEach(p => pAlert.addAction(p.name)); // 添加更精细的选项以防万一
+  positions.forEach(p => pAlert.addAction(p.name));
   pAlert.addCancelAction("取消");
 
   const posIndex = await pAlert.presentSheet();
   if (posIndex === -1) return;
-  
-  // 合并数组以获取选中的值
-  const allPos = [...simplePositions, ...positions];
-  const choice = allPos[posIndex].val;
+  const posChoice = positions[posIndex].val;
 
-  // 5. 裁剪计算
-  // 默认按中号组件宽度裁剪（因为大号宽度通常等于中号，高度不同但这里做通用处理）
-  // 注意：这个脚本主要目的是生成背景，通常生成 中号/大号 通用的图即可
+  // 5. 选择尺寸 (明确区分中号和大号)
+  const sAlert = new Alert();
+  sAlert.title = "第二步：选择尺寸";
+  sAlert.message = "请选择组件的大小";
   
-  // 如果用户选了 Top/Middle/Bottom，我们默认生成“中号/大号”宽度的图
-  // 如果需要支持小号，需要更复杂的交互，这里为了通用性，默认生成 宽版 裁剪
+  const sizes = [
+    { name: "中号 (Medium)", val: "medium" },
+    { name: "大号 (Large)", val: "large" }
+  ];
   
-  let crop = { x:0, y:0, w:0, h:0 };
+  sizes.forEach(s => sAlert.addAction(s.name));
+  sAlert.addCancelAction("取消");
   
-  // 获取基础参数
-  let w_small = phone.small;
-  let w_medium = phone.medium;
-  let w_large = phone.large; // 也就是高度
-  
-  // 间距计算
-  let left = phone.left;
-  let right = phone.right;
-  let top = phone.top;
-  let middle = phone.middle;
-  let bottom = phone.bottom;
+  const sizeIndex = await sAlert.presentSheet();
+  if (sizeIndex === -1) return;
+  const sizeChoice = sizes[sizeIndex].val;
 
-  // 逻辑：
-  // Top = 左上起始，宽度为 Medium 宽，高度为 Large 高 (为了最大兼容)
-  // 实际为了兼容性，我们通常裁剪出该区域的图片。
+  // 6. 裁剪计算
+  let crop = { x: 0, y: 0, w: 0, h: 0 };
   
-  // 这里我们简化逻辑，根据用户选择裁剪出对应的区域
+  // X轴：中号和大号都是横向占满（除去边距），所以 X 固定为 left
+  crop.x = phone.left;
   
-  // 确定 Y 轴
-  if (choice.includes("top")) crop.y = top;
-  else if (choice.includes("middle")) crop.y = middle;
-  else if (choice.includes("bottom")) crop.y = bottom;
+  // Y轴：根据选择的位置确定
+  if (posChoice === "top") crop.y = phone.top;
+  else if (posChoice === "middle") crop.y = phone.middle;
+  else if (posChoice === "bottom") crop.y = phone.bottom;
   
-  // 确定 X 轴 (默认靠左，如果是明确的 Right 则靠右)
-  if (choice.includes("right")) crop.x = right;
-  else crop.x = left;
-  
-  // 确定宽高
-  // 如果是 Top/Middle/Bottom (不带左右)，通常是大组件或中组件，宽度取 Medium
-  if (!choice.includes("-")) {
-      crop.w = w_medium;
-      crop.h = w_medium; // 这里取方形还是？通常中组件高度是 Small 的高
-      // 为了让生成的图能适配中号和大号，我们通常保存高度为 Large 的高度（如果位置允许）
-      // 但最安全的是生成 中号 尺寸
-      crop.h = phone.small; // 中号高度 = 小号高度
-      
-      // 如果是大号，高度需要更多。
-      // 为了简单，我们生成一个“中号”尺寸的背景，因为你的脚本主要是中号
-      // 如果是大号组件，下面的逻辑可能需要微调
+  // 宽高：根据选择的尺寸确定
+  if (sizeChoice === "medium") {
+      // 中号：宽度=medium定义值，高度=small定义值 (通常中号高度等于小号高度)
+      crop.w = phone.medium;
+      crop.h = phone.small; 
   } else {
-      // 如果选了 左上/右上 这种，通常是小组件
-      crop.w = w_small;
-      crop.h = w_small;
-  }
-  
-  // 修正：为了配合你的 Caishow 脚本（主要是中/大号），我们强制生成“中号/大号通用宽度”
-  if (choice === 'top' || choice === 'middle' || choice === 'bottom') {
-      crop.w = phone.medium; 
-      // 高度方面，大号组件需要更高。
-      // 如果你的组件是大号，这里需要裁更多。
-      // 这里的策略是：裁剪出该区域“尽可能大”的背景
-      crop.h = phone.large; // 尝试裁剪大号高度
+      // 大号：宽度=medium定义值 (通常大号宽度等于中号宽度)，高度=large定义值
+      // 为了保险，大号宽度我们取 phone.medium 和 phone.large 中较大的那个，或者直接用库里的定义
+      crop.w = phone.medium; // 大部分机型大号宽度等于中号
+      crop.h = phone.large;  // 大号高度
   }
 
-  // 6. 执行裁剪
+  // 7. 执行裁剪
   const draw = new DrawContext();
   draw.size = new Size(crop.w, crop.h);
   draw.drawImageAtPoint(image, new Point(-crop.x, -crop.y));
   const finalImage = draw.getImage();
 
-  // 7. 保存文件
+  // 8. 保存文件
   // Caishow 脚本会读取 baseDir 下以 Script.name() 命名的文件
   const savePath = fm.joinPath(baseDir, Script.name());
   fm.writeImage(savePath, finalImage);
