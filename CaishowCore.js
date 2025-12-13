@@ -1,17 +1,23 @@
-// 文件名: CaishowCore.js
-// 描述: 全能日历天气的核心逻辑 (支持手动更新)
+// 核心版本 v1.0.6 (修复依赖路径)
+const CoreVersion = "1.0.6";
 
-// 🔥 每次你修改代码发布新版，记得改这里！
-const CoreVersion = "1.0.5"; 
-
-if (typeof require === 'undefined') require = importModule;
-
-// ⚠️ 修正点：因为此文件在子目录 Caishow_Cache 中，引用根目录的 DmYY 建议直接用文件名
+// 安全加载 DmYY 依赖
+// 不再使用 require 兼容写法，直接使用标准 importModule
 let DmYY;
 try {
-    // 尝试直接加载（标准方式）
-    const module = importModule('DmYY');
-    DmYY = module.DmYY;
+    // 尝试直接加载 DmYY (标准方式)
+    const module = importModule('DmYY'); 
+    
+    // 判断 DmYY 是导出在对象里，还是直接导出的
+    if (module.DmYY) {
+        DmYY = module.DmYY;
+    } else {
+        DmYY = module;
+    }
+} catch (e) {
+    console.error("⚠️ 核心无法加载 DmYY 依赖: " + e.message);
+}
+
 } catch (e) {
     // 备用：尝试加载上一级目录
     try {
