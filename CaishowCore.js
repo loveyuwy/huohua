@@ -1,0 +1,301 @@
+// 文件名: CaishowCore.js
+// 描述: 全能日历天气的核心逻辑 (支持手动更新)
+
+// 🔥 每次你修改代码发布新版，记得改这里！
+const CoreVersion = "1.0.5"; 
+
+if (typeof require === 'undefined') require = importModule;
+
+// ⚠️ 修正点：因为此文件在子目录 Caishow_Cache 中，引用根目录的 DmYY 建议直接用文件名
+let DmYY;
+try {
+    // 尝试直接加载（标准方式）
+    const module = importModule('DmYY');
+    DmYY = module.DmYY;
+} catch (e) {
+    // 备用：尝试加载上一级目录
+    try {
+        const module = importModule('../DmYY');
+        DmYY = module.DmYY;
+    } catch(e2) {
+        console.error("找不到 DmYY 依赖，请确保 DmYY.js 在 Scriptable 根目录");
+    }
+}
+
+const FM = FileManager.local();
+const BASE_DIR = FM.joinPath(FM.libraryDirectory(), "Caishow_Data_OM");
+if (!FM.fileExists(BASE_DIR)) FM.createDirectory(BASE_DIR);
+
+// --- 常量定义 (保持你原有数据) ---
+const lunarInfo = [0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,0x06ca0,0x0b550,0x15355,0x04da0,0x0a5d0,0x14573,0x052d0,0x0a9a8,0x0e950,0x06aa0,0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b5a0,0x195a6,0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x05ac0,0x0ab60,0x096d5,0x092e0,0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,0x05aa0,0x076a3,0x096d0,0x0bd7,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0];
+const weatherIcos = { CLEAR_DAY:"sun.max.fill", CLEAR_NIGHT:"moon.fill", PARTLY_CLOUDY_DAY:"cloud.sun.fill", PARTLY_CLOUDY_NIGHT:"cloud.moon.fill", CLOUDY:"cloud.fill", LIGHT_HAZE:"sun.haze.fill", MODERATE_HAZE:"sun.haze.fill", HEAVY_HAZE:"sun.haze.fill", LIGHT_RAIN:"cloud.drizzle.fill", MODERATE_RAIN:"cloud.rain.fill", HEAVY_RAIN:"cloud.rain.fill", STORM_RAIN:"cloud.heavyrain.fill", FOG:"cloud.fog.fill", LIGHT_SNOW:"cloud.snow.fill", MODERATE_SNOW:"cloud.snow.fill", HEAVY_SNOW:"cloud.snow.fill", STORM_SNOW:"wind.snow.fill", DUST:"cloud.dust.fill", SAND:"cloud.dust.fill", WIND:"wind", SUNSET:"sunset.fill", SUNRISE:"sunrise.fill" };
+const weekTitle = ['周日','周一','周二','周三','周四','周五','周六'];
+const weekTitleShort = ['日','一','二','三','四','五','六'];
+const zodiacAnimals = ["鼠","牛","虎","兔","龙","蛇","马","羊","猴","鸡","狗","猪"];
+const heavenlyStems = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"];
+const earthlyBranches = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+const yellowBlackDays = ["建","除","满","平","定","执","破","危","成","收","开","闭"];
+const twentyEightMansions = ["角","亢","氐","房","心","尾","箕","斗","牛","女","虚","危","室","壁","奎","娄","胃","昴","毕","觜","参","井","鬼","柳","星","张","翼","轸"];
+const solarTerms = ["小寒","大寒","立春","雨水","惊蛰","春分","清明","谷雨","立夏","小满","芒种","夏至","小暑","大暑","立秋","处暑","白露","秋分","寒露","霜降","立冬","小雪","大雪","冬至"];
+
+const greetingText = {
+  nightGreeting: "🦉火华,可以来一发了~",
+  morningGreeting: "💫火华,早上心情美美哒~",
+  noonGreeting: "🥳火华,中午好呀~",
+  afternoonGreeting: "🐡火华,下午好呀~",
+  eveningGreeting: "🐳火华,（傍晚好呀）",
+  nightText: "🌙火华,（晚上好呀）"
+};
+
+const baseConfigKeys = {
+    size_greeting: "100", size_date: "100", size_lunar: "100", size_info: "100", 
+    size_weather: "100", size_weatherLarge: "100", size_poetry: "100", size_timeInfo: "100", 
+    size_calendar: "100", size_holiday: "100", 
+    size_schedule_title: "100", size_schedule_item: "100", 
+    size_lotteryTitle: "100", size_lotteryItem: "100", size_lotteryInfo: "100",
+    
+    color_greeting: "#ffffff", color_date: "#ffcc99", color_lunar: "#99ccff", color_info: "#ffffff",
+    color_weather: "#ffffff", color_weatherLarge: "#ffffff", color_poetry: "#ffffff", 
+    color_timeInfo: "#99ccff", color_calendar: "#ffffff", color_holiday: "#ffffff", 
+    color_schedule_title: "#ffffff", 
+    color_schedule_bg: "#666666",
+    color_schedule_item_1: "#ffffff",
+    color_schedule_item_2: "#ffffff",
+    color_schedule_item_3: "#ffffff",
+    color_schedule_item_4: "#ffffff",
+    color_schedule_item_5: "#ffffff",
+    color_schedule_item_6: "#ffffff",
+    
+    color_lotteryTitle: "#ffffff", color_lotteryItem: "#ffffff", color_lotteryInfo: "#99ccff",
+    
+    color_bg: "#000000", color_bg_2: "", 
+    color_bg_day: "", color_bg_2_day: "",
+    color_bg_night: "", color_bg_2_night: "",
+
+    layout_med_left_x: "0", layout_med_left_y: "0",
+    layout_med_right_x: "0", layout_med_right_y: "0",
+    layout_lg_tl_x: "0", layout_lg_tl_y: "0",
+    layout_lg_tr_x: "0", layout_lg_tr_y: "0",
+    layout_lg_mid_x: "0", layout_lg_mid_y: "0",
+    layout_lg_week_x: "0", layout_lg_week_y: "0",
+    layout_lg_cal_x: "0", layout_lg_cal_y: "0",
+    layout_lg_holiday_x: "0", layout_lg_holiday_y: "0",
+    layout_lg_schedule_x: "0", layout_lg_schedule_y: "0",
+
+    space_week_w: "28", space_cal_w: "28", space_cal_h: "3",
+    space_holiday_h: "2", space_schedule_h: "2",
+    
+    schedule_count: "4", schedule_offset: "0",
+    text_greeting_night: "", text_greeting_morning: "", text_greeting_noon: "", text_greeting_afternoon: "", text_greeting_evening: ""
+};
+
+const ConfigManager = {
+  getPath: (name) => FM.joinPath(BASE_DIR, name),
+  load: () => {
+    const path = FM.joinPath(BASE_DIR, "settings.json");
+    if (FM.fileExists(path)) { try { return JSON.parse(FM.readString(path)); } catch (e) { return {}; } }
+    return {};
+  },
+  save: (data) => { try { FM.writeString(FM.joinPath(BASE_DIR, "settings.json"), JSON.stringify(data)); } catch (e) {} },
+  saveCache: (name, data) => { try { FM.writeString(FM.joinPath(BASE_DIR, name), JSON.stringify(data)); } catch(e){} },
+  readCache: (name) => { try { const path = FM.joinPath(BASE_DIR, name); if(FM.fileExists(path)) return JSON.parse(FM.readString(path)); } catch(e){} return null; },
+  saveImg: (name, img) => { try { FM.writeImage(FM.joinPath(BASE_DIR, name), img); } catch(e){} },
+  getImg: (name) => { const p = FM.joinPath(BASE_DIR, name); return FM.fileExists(p) ? FM.readImage(p) : null; },
+  rmImg: (name) => { try { FM.remove(FM.joinPath(BASE_DIR, name)); } catch(e){} },
+  clear: () => { try { if(FM.fileExists(BASE_DIR)) { const files = FM.listContents(BASE_DIR); for(const f of files) FM.remove(FM.joinPath(BASE_DIR, f)); } } catch(e){} }
+};
+
+// --- 主类定义 ---
+class CaishowWidget extends DmYY {
+  constructor(arg) {
+    super(arg);
+    this.name = '全能日历天气';
+    this.en = 'CalendarWeather';
+    this.defaultData = {
+      apiKey: "", lockLocation: false, fixedLng: "", fixedLat: "", fixedCity: "", fixedSubCity: "",
+      refreshInterval: "60", styleModel: "classic", global_font_size: "100", lottery_type: "none"
+    };
+    for (const [key, val] of Object.entries(baseConfigKeys)) {
+        this.defaultData[`s1_${key}`] = val; this.defaultData[`s2_${key}`] = val;
+        this.defaultData[`s3_${key}`] = val; this.defaultData[`s4_${key}`] = val; 
+    }
+    this.defaultData[`s1_space_week_w`] = "30"; this.defaultData[`s1_space_cal_w`] = "27.2";
+    this.defaultData[`s2_space_week_w`] = "30"; this.defaultData[`s2_space_cal_w`] = "27.2";
+    this.defaultData[`s3_size_calendar`] = "89"; this.defaultData[`s4_size_calendar`] = "89";
+    this.defaultData[`s3_space_week_w`] = "9.1"; this.defaultData[`s3_space_cal_w`] = "6.2";
+    this.defaultData[`s3_space_cal_h`] = "0"; this.defaultData[`s3_space_holiday_h`] = "4"; 
+    this.defaultData[`s4_space_week_w`] = "9.1"; this.defaultData[`s4_space_cal_w`] = "6.2";
+    this.defaultData[`s4_space_cal_h`] = "0"; this.defaultData[`s4_space_schedule_h`] = "0"; 
+    this.defaultData[`s4_schedule_count`] = "4"; 
+    
+    const saved = ConfigManager.load();
+    this.settings = Object.assign({}, this.defaultData, saved);
+  }
+
+  Run() {
+    if (config.runsInApp) {
+      // === 核心修改：添加检查更新按钮 ===
+      this.registerAction("检查核心更新", async () => { await this.checkCoreUpdate(); }, { name: 'icloud.and.arrow.down.fill', color: '#007aff', desc: `当前核心 v${CoreVersion}` });
+      
+      this.registerAction("基础设置", async () => { await this.setBasicConfig(); }, { name: 'gearshape.fill', color: '#007aff', desc: '定位、刷新频率' });
+      this.registerAction("彩票与问候", async () => { await this.handleGreetingSettings(this.getActivePrefix()); }, { name: 'ticket.fill', color: '#FF2D55', desc: '选择显示的彩票或问候语' });
+      
+      this.registerAction("第一套（三天天气）", async () => { await this.handleStyleSettingsMenu("s1") }, { name: 'doc.text.image', color: '#FF9500', desc: '第一套 (经典)' });
+      this.registerAction("第二套（七天天气）", async () => { await this.handleStyleSettingsMenu("s2") }, { name: 'doc.text', color: '#34C759', desc: '第二套 (简约)' });
+      this.registerAction("第三套（节假日倒计时）", async () => { await this.handleStyleSettingsMenu("s3") }, { name: 'gift.fill', color: '#FF2D55', desc: '第三套 (节日)' });
+      this.registerAction("第四套（日历日程）", async () => { await this.handleStyleSettingsMenu("s4") }, { name: 'calendar.badge.clock', color: '#007AFF', desc: '第四套 (日程)' });
+
+      this.registerAction("组件切换", async () => { await this.handleStyleSwitch(); }, { name: 'arrow.triangle.2.circlepath', color: '#5856d6', desc: '切换当前显示样式' });
+      this.registerAction("重置配置", async () => { 
+        const a = new Alert(); a.title = "确认重置？"; a.message = "所有个性化颜色、布局、Key都将丢失。";
+        a.addAction("确认重置"); a.addCancelAction("取消");
+        if(await a.presentAlert()===0){ ConfigManager.clear(); this.settings = Object.assign({}, this.defaultData); ConfigManager.save(this.settings); this.notify("已重置", "请重新运行脚本"); }
+      }, { name: 'trash.fill', color: '#ff3b30', desc: '修复所有问题' });
+    }
+  }
+
+  // === 新增：核心更新逻辑 ===
+  async checkCoreUpdate() {
+    const CORE_URL = "https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/CaishowCore.js";
+    const a = new Alert();
+    try {
+        this.notify("⏳ 检查中", "正在连接 GitHub...");
+        const req = new Request(CORE_URL);
+        req.headers = { "Cache-Control": "no-cache" }; 
+        const html = await req.loadString();
+        
+        const versionMatch = html.match(/const\s+CoreVersion\s*=\s*["'](.*?)["']/);
+        const remoteVersion = versionMatch ? versionMatch[1] : null;
+
+        if (!remoteVersion) {
+            a.title = "⚠️ 检测失败";
+            a.message = "无法获取远程版本号，请检查 GitHub 文件格式。";
+            a.addAction("确定");
+            await a.presentAlert();
+            return;
+        }
+
+        if (this.compareVersion(remoteVersion, CoreVersion) > 0) {
+            a.title = `🚀 发现新版本 v${remoteVersion}`;
+            a.message = `当前版本: v${CoreVersion}\n\n是否立即下载并覆盖更新？`;
+            a.addAction("立即更新");
+            a.addCancelAction("取消");
+            const idx = await a.presentAlert();
+            
+            if (idx === 0) {
+                const fm = FileManager.local();
+                const cacheDir = fm.joinPath(fm.libraryDirectory(), "Caishow_Cache");
+                const corePath = fm.joinPath(cacheDir, "CaishowCore.js");
+                fm.writeString(corePath, html);
+                
+                const done = new Alert();
+                done.title = "✅ 更新完成";
+                done.message = "脚本已更新，请重新运行脚本以生效。";
+                done.addAction("好的");
+                await done.presentAlert();
+            }
+        } else {
+            a.title = "✅ 已是最新";
+            a.message = `当前版本: v${CoreVersion}\n远程版本: v${remoteVersion}\n\n无需更新。`;
+            a.addAction("好的");
+            await a.presentAlert();
+        }
+
+    } catch (e) {
+        a.title = "❌ 网络错误";
+        a.message = e.message;
+        a.addAction("确定");
+        await a.presentAlert();
+    }
+  }
+
+  compareVersion(v1, v2) {
+    const v1parts = v1.split('.').map(Number);
+    const v2parts = v2.split('.').map(Number);
+    for (let i = 0; i < Math.max(v1parts.length, v2parts.length); ++i) {
+      if ((v1parts[i] || 0) > (v2parts[i] || 0)) return 1;
+      if ((v1parts[i] || 0) < (v2parts[i] || 0)) return -1;
+    }
+    return 0;
+  }
+
+  getActivePrefix() {
+    let currentModel = this.settings.styleModel || "classic";
+    if (currentModel === "modern") return "s2";
+    if (currentModel === "holiday") return "s3";
+    if (currentModel === "schedule") return "s4";
+    return "s1";
+  }
+
+  async loadAndRunEditor(prefix) {
+    const EDITOR_URL = "https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/TransparencyEditor.js";
+    const fm = FileManager.local();
+    const localPath = fm.joinPath(fm.libraryDirectory(), "Caishow_Editor_Cache.js");
+    try {
+        this.notify("⏳ 加载中", "正在拉取最新编辑器...");
+        const req = new Request(EDITOR_URL);
+        req.headers = { "Cache-Control": "no-cache" }; 
+        const code = await req.loadString();
+        fm.writeString(localPath, code);
+        const runEditor = importModule(localPath);
+        await runEditor(this, ConfigManager, prefix);
+    } catch (e) {
+        const a = new Alert(); a.title = "加载失败"; a.message = e.message; a.addAction("确定"); await a.presentAlert();
+    }
+  }
+    
+  async handleStyleSettingsMenu(prefix) { let pName="经典"; if(prefix==="s2")pName="简约"; if(prefix==="s3")pName="节日"; if(prefix==="s4")pName="日程"; let menu=[{title:"布局微调",val:"menu_layout",icon:{name:"arrow.up.and.down.and.arrow.left.and.right",color:"#5856D6"},desc:"调整组件位置",onClick:async()=>await this.handleLayoutMenu(prefix)},{title:"间距/数量",val:"menu_spacing",icon:{name:"arrow.up.left.and.arrow.down.right",color:"#FF2D55"},desc:"调整行列间距/数量",onClick:async()=>await this.handleSpacingMenu(prefix)},{title:"字体大小",val:"menu_size",icon:{name:"textformat.size",color:"#FF9500"},desc:"调整全局或局部缩放",onClick:async()=>await this.handleSizeMenu(prefix)},{title:"彩票与问候",val:"menu_greeting",icon:{name:"ticket.fill",color:"#5AC8FA"},desc:"选择彩票或自定义问候",onClick:async()=>await this.handleGreetingSettings(prefix)},{title:"颜色配置",val:"menu_color",icon:{name:"paintpalette.fill",color:"#34C759"},desc:"自定义文字颜色",onClick:async()=>await this.handleColorMenu(prefix)},{title:"背景设置",val:"menu_bg",icon:{name:"photo.fill",color:"#007AFF"},desc:"日夜模式/图片/渐变",onClick:async()=>await this.handleBackgroundMenu(prefix)}]; await this.renderAppView([{title:`${pName}配置菜单`,menu:menu}]); }
+  async handleGreetingSettings(prefix) { const lotteryOptions=[{t:"🚫 不显示彩票 (使用问候语)",v:"none"},{t:"🟡🔵 大乐透 (DLT)",v:"dlt"},{t:"🔴🔵 双色球 (SSQ)",v:"ssq"},{t:"🔢 排列三 (PL3)",v:"pl3"},{t:"🎲 福彩3D (FC3D)",v:"fc3d"},{t:"7️⃣ 七星彩 (QXC)",v:"qxc"},{t:"🌈 七乐彩 (QLC)",v:"qlc"},{t:"🖐 排列五 (PL5)",v:"pl5"}]; let currentVal=this.settings.lottery_type||"none"; let currentOption=lotteryOptions.find(o=>o.v===currentVal)||lotteryOptions[0]; await this.renderAppView([{title:"彩票显示设置",menu:[{title:"点击选择模式",val:"click_select_lottery_type",desc:currentOption.t,icon:{name:"checklist",color:"#FF2D55"},onClick:async()=>{const a=new Alert();a.title="选择显示的彩票";a.message="选择后将替换问候语位置显示开奖信息";lotteryOptions.forEach(o=>{if(o.v===currentVal){a.addAction("✅ "+o.t);}else{a.addAction(o.t);}});a.addCancelAction("取消");const idx=await a.presentSheet();if(idx!==-1){const selected=lotteryOptions[idx];this.settings.lottery_type=selected.v;ConfigManager.save(this.settings);this.notify("设置已更新",`当前模式：${selected.t}`);}}}]},{title:`自定义问候语 (当彩票选择"不显示"时生效)`,menu:[{title:"凌晨/深夜 (23:00-05:00)",type:"input",val:`${prefix}_text_greeting_night`,placeholder:"默认: "+greetingText.nightGreeting},{title:"早上 (05:00-11:00)",type:"input",val:`${prefix}_text_greeting_morning`,placeholder:"默认: "+greetingText.morningGreeting},{title:"中午 (11:00-13:00)",type:"input",val:`${prefix}_text_greeting_noon`,placeholder:"默认: "+greetingText.noonGreeting},{title:"下午 (13:00-18:00)",type:"input",val:`${prefix}_text_greeting_afternoon`,placeholder:"默认: "+greetingText.afternoonGreeting},{title:"晚上 (18:00-23:00)",type:"input",val:`${prefix}_text_greeting_evening`,placeholder:"默认: "+greetingText.nightText}]}]); ConfigManager.save(this.settings); }
+  async handleLayoutMenu(prefix) { const items=[{title:"[中号] 左侧信息区",code:"med_left"},{title:"[中号] 右侧天气区",code:"med_right"},{title:"[大号] 左上信息区",code:"lg_tl"},{title:"[大号] 右上天气区",code:"lg_tr"},{title:"[大号] 中间黄历条",code:"lg_mid"},{title:"[大号] 日历-星期栏",code:"lg_week"},{title:"[大号] 日历-日期区",code:"lg_cal"}]; if(prefix==="s3"){items.push({title:"[大号] 左下-假期倒数",code:"lg_holiday"});} if(prefix==="s4"){items.push({title:"[大号] 左下-日历事件",code:"lg_schedule"});} await this.renderAppView([{title:`选择调整区域 (${prefix})`,menu:items.map(i=>({title:i.title,val:`layout_${i.code}`,icon:{name:"square.dashed",color:"#8E8E93"},desc:"点击设置XY偏移",onClick:async()=>await this.renderLayoutInput(i.title,i.code,prefix)}))}]); }
+  async renderLayoutInput(title,code,prefix) { await this.renderAppView([{title:`${title} - 偏移 (X/Y)`,menu:[{title:"X轴偏移",desc:"正右负左",type:"input",val:`${prefix}_layout_${code}_x`,placeholder:"0"},{title:"Y轴偏移",desc:"正下负上",type:"input",val:`${prefix}_layout_${code}_y`,placeholder:"0"}]}]); ConfigManager.save(this.settings); }
+  async handleSpacingMenu(prefix) { let menu=[{title:"星期栏-横向",desc:"(左右间距)",type:"input",val:`${prefix}_space_week_w`,placeholder:"28"},{title:"日期区-横向",desc:"(左右间距,调小防溢出)",type:"input",val:`${prefix}_space_cal_w`,placeholder:"28"},{title:"日期区-行高",desc:"(上下行距)",type:"input",val:`${prefix}_space_cal_h`,placeholder:"3"}]; if(prefix==="s3"){menu.push({title:"倒计时-行高",type:"input",val:`${prefix}_space_holiday_h`,placeholder:"4"});} if(prefix==="s4"){menu.push({title:"日程列表-行高",type:"input",val:`${prefix}_space_schedule_h`,placeholder:"0"},{title:"最大显示数量",desc:"建议3或4",type:"input",val:`${prefix}_schedule_count`,placeholder:"4"},{title:"跳过指定序号",desc:"如: 2,4 (跳过第2和第4个)",type:"input",val:`${prefix}_schedule_offset`,placeholder:"2,4"});} await this.renderAppView([{title:`间距调整 (${prefix})`,menu:menu}]); ConfigManager.save(this.settings); }
+  async handleSizeMenu(prefix) { const items=[{id:"greeting",t:"问候语"},{id:"lotteryTitle",t:"彩票标题(期号)"},{id:"lotteryItem",t:"彩票开奖球号"},{id:"lotteryInfo",t:"今日开奖状态"},{id:"date",t:"公历日期"},{id:"lunar",t:"农历日期"},{id:"info",t:"电量与定位"},{id:"weather",t:"天气描述"},{id:"weatherLarge",t:"大温度数字"},{id:"poetry",t:"诗词与预报"},{id:"timeInfo",t:"底部时间条"},{id:"calendar",t:"月历区域"}]; if(prefix==="s3")items.push({id:"holiday",t:"假期倒数"}); if(prefix==="s4"){items.push({id:"schedule_title",t:"日程标题"},{id:"schedule_item",t:"日程列表"});} const menuItems=items.map(i=>({title:i.t,type:"input",val:`${prefix}_size_${i.id}`,placeholder:"100"})); const globalMenu=[{title:"🌐 全局缩放",desc:"所有文字按比例缩放(默认100)",type:"input",val:"global_font_size",placeholder:"100"}]; await this.renderAppView([{title:"全局设置 (影响所有组件)",menu:globalMenu},{title:`局部微调 (${prefix})`,menu:[{title:"✏️ 修改局部数值",val:"size_edit",icon:{name:"pencil",color:"#007AFF"},desc:"进入单独调整",onClick:async()=>{await this.renderAppView([{title:"局部缩放 (百分比)",menu:menuItems}]);ConfigManager.save(this.settings);}},{title:"↩️ 恢复默认",val:"size_reset",icon:{name:"arrow.counterclockwise",color:"#FF3B30"},desc:"重置当前套系字体",onClick:async()=>{items.forEach(k=>this.settings[`${prefix}_size_${k.id}`]="100");this.settings["global_font_size"]="100";ConfigManager.save(this.settings);this.notify("已恢复","字体大小已重置");}}]}]); }
+  async handleColorMenu(prefix) { const items=[{id:"greeting",t:"问候语"},{id:"lotteryTitle",t:"彩票标题"},{id:"lotteryInfo",t:"今日开奖状态"},{id:"date",t:"公历日期"},{id:"lunar",t:"农历日期"},{id:"info",t:"电量与定位"},{id:"weather",t:"天气描述"},{id:"weatherLarge",t:"大温度数字"},{id:"poetry",t:"诗词与预报"},{id:"timeInfo",t:"底部时间条"},{id:"calendar",t:"月历区域"}]; if(prefix==="s3")items.push({id:"holiday",t:"假期倒数"}); if(prefix==="s4"){items.push({id:"schedule_title",t:"日程标题"},{id:"schedule_bg",t:"日程背景(底框)"});for(let j=1;j<=6;j++){items.push({id:`schedule_item_${j}`,t:`日程列表-第${j}行`});}} const menuItems=items.map(i=>({title:i.t,type:"color",val:`${prefix}_color_${i.id}`})); await this.renderAppView([{title:`颜色配置 (${prefix})`,menu:[{title:"🎨 修改颜色",val:"color_edit",icon:{name:"paintpalette",color:"#007AFF"},desc:"进入选色页面",onClick:async()=>{await this.renderAppView([{title:"自定义颜色",menu:menuItems}]);ConfigManager.save(this.settings);}},{title:"↩️ 恢复默认",val:"color_reset",icon:{name:"arrow.counterclockwise",color:"#FF3B30"},desc:"重置当前套系颜色",onClick:async()=>{items.forEach(k=>this.settings[`${prefix}_color_${k.id}`]=baseConfigKeys[`color_${k.id}`]);ConfigManager.save(this.settings);this.notify("已恢复","颜色已重置");}}]}]); }
+  async setBasicConfig() { const l=async()=>{try{const lo=await Location.current();const g=await Location.reverseGeocode(lo.latitude,lo.longitude,"zh_cn");this.settings.fixedLat=String(lo.latitude);this.settings.fixedLng=String(lo.longitude);this.settings.fixedCity=g[0].locality;this.settings.fixedSubCity=g[0].subLocality;ConfigManager.save(this.settings);this.notify("定位成功","已保存");await this.setBasicConfig();}catch(e){this.notify("定位失败",e.message);await this.setBasicConfig();}}; const items=[{title:"刷新间隔(分)",type:"input",val:"refreshInterval",placeholder:"60"},{title:"📍 获取定位",val:"get_location_btn",icon:{name:"location",color:"#007AFF"},onClick:l},{title:"锁定定位",type:"switch",val:"lockLocation"}]; await this.renderAppView([{title:"基础设置 (全局生效)",menu:items},{title:"固定坐标",menu:[{title:"经度",type:"input",val:"fixedLng"},{title:"纬度",type:"input",val:"fixedLat"},{title:"城市",type:"input",val:"fixedCity"},{title:"区域",type:"input",val:"fixedSubCity"}]}]); ConfigManager.save(this.settings); }
+  async handleStyleSwitch() { const saved=ConfigManager.load(); this.settings=Object.assign({},this.defaultData,saved); const options=[{t:"第一套(三天天气)",v:"classic"},{t:"第二套(七天天气)",v:"modern"},{t:"第三套(节日倒计时)",v:"holiday"},{t:"第四套(日历事件)",v:"schedule"}]; const currentStyle=this.settings.styleModel||"classic"; await this.renderAppView([{title:"选择组件样式",menu:options.map(o=>({title:(currentStyle===o.v?"✅ ":"")+o.t,val:`style_${o.v}`,icon:{name:"circle.grid.2x2",color:"#5856D6"},onClick:async()=>{const a=new Alert();a.title="确认切换？";a.message=`即将切换为：${o.t}\n\n切换后请点击脚本右下角的“运行”按钮以刷新预览。`;a.addAction("确认切换");a.addCancelAction("取消");const idx=await a.presentAlert();if(idx===0){this.settings.styleModel=o.v;ConfigManager.save(this.settings);this.notify("✅ 样式已切换",`当前模式：${o.t} (请重新运行)`);}}}) )}]); }
+  async setKeyConfig() { await this.setBasicConfig(); }
+  async setRefreshConfig() { await this.setBasicConfig(); }
+  async fetchData() { const freshSettings=ConfigManager.load(); this.settings=Object.assign({},this.defaultData,freshSettings); let location={latitude:39.90,longitude:116.40,locality:"定位中",subLocality:""}; const isLocked=(this.settings.lockLocation===true||this.settings.lockLocation==="true"); if(isLocked){if(this.settings.fixedLat&&this.settings.fixedLng){location={latitude:this.settings.fixedLat,longitude:this.settings.fixedLng,locality:this.settings.fixedCity||"固定",subLocality:this.settings.fixedSubCity||"位置"};}}else{try{let l=await Location.current();let g=await Location.reverseGeocode(l.latitude,l.longitude,"zh_cn");location={latitude:l.latitude,longitude:l.longitude,locality:g[0].locality,subLocality:g[0].subLocality};ConfigManager.saveCache("location_cache.json",location);this.settings.fixedLat=String(l.latitude);this.settings.fixedLng=String(l.longitude);this.settings.fixedCity=g[0].locality;this.settings.fixedSubCity=g[0].subLocality;ConfigManager.save(this.settings);}catch(e){const c=ConfigManager.readCache("location_cache.json");if(c)location=c;else location.locality="定位失败";}} this.location=location; let weather={}; try{const weatherUrl=`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&timezone=auto&forecast_days=14`;const aqiUrl=`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${location.latitude}&longitude=${location.longitude}&current=us_aqi&timezone=auto`;const reqW=new Request(weatherUrl);reqW.timeoutInterval=8;const reqA=new Request(aqiUrl);reqA.timeoutInterval=8;const[resW,resA]=await Promise.all([reqW.loadJSON(),reqA.loadJSON()]);weather=this.processOpenMeteo(resW,resA);if(weather.temp)ConfigManager.saveCache("weather_cache.json",weather);}catch(e){const c=ConfigManager.readCache("weather_cache.json");if(c)weather=c;} let poetry={}; let isStyle2=(this.settings.styleModel==="modern"||(args.widgetParameter&&args.widgetParameter.indexOf("style2")>-1)); if(!isStyle2){try{const pReq=new Request("https://v2.jinrishici.com/sentence");pReq.timeoutInterval=5;const pRes=await pReq.loadJSON();poetry=pRes.data?pRes:{};}catch(e){}} let schedules=[]; try{const events=await CalendarEvent.today([]);schedules=events.filter(e=>!e.title.startsWith("Canceled")).map(e=>({title:e.title}));}catch(e){} const lottery=await this.fetchLotteryData(); return{weather,poetry,schedules,lottery}; }
+  processOpenMeteo(wData,aData) { if(!wData||!wData.current||!wData.daily)return{}; let info={}; info.temp=Math.round(wData.current.apparent_temperature);info.hum=wData.current.relative_humidity_2m+"%";info.ico=this.wmCodeToIcon(wData.current.weather_code,wData.current.is_day); if(wData.daily.uv_index_max&&wData.daily.uv_index_max[0]!==undefined){info.uv=Math.round(wData.daily.uv_index_max[0]);}else{info.uv="-";} if(aData&&aData.current&&aData.current.us_aqi!==undefined){info.aqi=this.airQuality(aData.current.us_aqi);}else{info.aqi="-";} const t=wData.current.temperature_2m;if(t<=5)info.comfort="寒冷";else if(t<=15)info.comfort="凉爽";else if(t<=26)info.comfort="舒适";else if(t<=32)info.comfort="炎热";else info.comfort="酷热"; if(wData.daily.sunrise&&wData.daily.sunrise[0])info.sunrise=wData.daily.sunrise[0].split("T")[1];else info.sunrise="--:--"; if(wData.daily.sunset&&wData.daily.sunset[0])info.sunset=wData.daily.sunset[0].split("T")[1];else info.sunset="--:--"; if(wData.daily.temperature_2m_min&&wData.daily.temperature_2m_min[0]!==undefined){info.min=Math.round(wData.daily.temperature_2m_min[0]);info.max=Math.round(wData.daily.temperature_2m_max[0]);}else{info.min="-";info.max="-";} const descMap={0:"晴朗",1:"多云",2:"多云",3:"阴",45:"雾",51:"小雨",61:"雨",71:"雪",95:"雷雨"};let dTxt=descMap[wData.current.weather_code]||"有雨";info.desc=`今日${dTxt}，最高${info.max}°，最低${info.min}°`;info.alertTitle=""; info.future=[];for(let i=1;i<14;i++){try{if(!wData.daily.time[i])break;let dStr=wData.daily.time[i];let dNum=parseInt(dStr.split("-")[2]);info.future.push({day:dNum+"日",min:Math.round(wData.daily.temperature_2m_min[i]),max:Math.round(wData.daily.temperature_2m_max[i]),ico:this.wmCodeToIcon(wData.daily.weather_code[i],1)});}catch(e){}} return info; }
+  wmCodeToIcon(code,isDay) { const map={0:isDay?"sun.max.fill":"moon.fill",1:isDay?"cloud.sun.fill":"cloud.moon.fill",2:isDay?"cloud.sun.fill":"cloud.moon.fill",3:"cloud.fill",45:"cloud.fog.fill",48:"cloud.fog.fill",51:"cloud.drizzle.fill",53:"cloud.drizzle.fill",55:"cloud.drizzle.fill",61:"cloud.rain.fill",63:"cloud.rain.fill",65:"cloud.rain.fill",80:"cloud.rain.fill",81:"cloud.rain.fill",82:"cloud.rain.fill",71:"cloud.snow.fill",73:"cloud.snow.fill",75:"cloud.snow.fill",95:"cloud.bolt.rain.fill",96:"cloud.bolt.rain.fill",99:"cloud.bolt.rain.fill"}; return map[code]||"cloud.fill"; }
+  async fetchLotteryData() { let type=this.settings.lottery_type||"dlt"; if(!type||type==="none")return null; if(type.includes("双色球")||type.includes("SSQ"))type="ssq";else if(type.includes("大乐透")||type.includes("DLT"))type="dlt";else if(type.includes("排列三")||type.includes("PL3"))type="pl3";else if(type.includes("福彩3D")||type.includes("FC3D"))type="fc3d";else if(type.includes("七星彩")||type.includes("QXC"))type="qxc";else if(type.includes("七乐彩")||type.includes("QLC"))type="qlc";else if(type.includes("排列五")||type.includes("PL5"))type="pl5"; const cacheKey=`lottery_cache_${type}`; const cache=ConfigManager.readCache(cacheKey); if(cache&&cache.timestamp&&(Date.now()-cache.timestamp)<1800000&&cache.data.pool){return cache.data;} let result={full:"",pool:"",type:type}; const mapName={"ssq":"双色球","dlt":"大乐透","pl3":"排列三","fc3d":"福彩3D","qxc":"七星彩","qlc":"七乐彩","pl5":"排列五"}; const name=mapName[type]||"彩票"; const sportteryMap={"dlt":85,"pl3":35,"pl5":81,"qxc":"04"}; if(sportteryMap[type]){try{const gameNo=sportteryMap[type];const url=`https://webapi.sporttery.cn/gateway/lottery/getHistoryPageListV1.qry?gameNo=${gameNo}&provinceId=0&pageSize=1&isVerify=1&pageNo=1`;const req=new Request(url);const res=await req.loadJSON();if(res&&res.success&&res.value&&res.value.list&&res.value.list.length>0){const item=res.value.list[0];let nums=item.lotteryDrawResult.replace(/ /g," ");if(type==="dlt"){const parts=item.lotteryDrawResult.split(" ");nums=parts.slice(0,5).join(" ")+" + "+parts.slice(5).join(" ");} result.full=`${name} ${item.lotteryDrawNum}期: ${nums}`;let pool=item.poolMoney||"0";result.pool=this.formatMoney(pool);}}catch(e){console.log("Sporttery Error: "+e.message);}}else{try{let cwlCode=type;if(type==="fc3d")cwlCode="3d";const url=`https://www.cwl.gov.cn/cwl_admin/front/cwlkj/search/kjxx/findDrawNotice?name=${cwlCode}&issueCount=1`;const req=new Request(url);req.headers={"User-Agent":"Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1","Referer":"https://www.cwl.gov.cn/","Accept":"application/json, text/javascript, */*; q=0.01","X-Requested-With":"XMLHttpRequest"};const res=await req.loadJSON();if(res&&res.result&&res.result.length>0){const item=res.result[0];let nums=item.red;if(item.blue&&item.blue.length>0){nums=nums+" + "+item.blue;} if(type==="fc3d"){nums=nums.replace(/,/g," ");}else{nums=nums.replace(/,/g," ");} result.full=`${name} ${item.code}期: ${nums}`;let pool=item.poolmoney||"0";result.pool=this.formatMoney(pool);}}catch(e){console.log("CWL Error: "+e.message);}} if(result.full){ConfigManager.saveCache(cacheKey,{data:result,timestamp:Date.now()});return result;} return null; }
+  formatMoney(numStr) { let num=parseFloat(numStr.replace(/,/g,"")); if(isNaN(num))return"统计中"; if(num>100000000){return(num/100000000).toFixed(2)+"亿";}else if(num>10000){return(num/10000).toFixed(1)+"万";} return num+"元"; }
+  getLotterySchedule(type) { const day=new Date().getDay(); const map={"ssq":[0,2,4],"dlt":[1,3,6],"qlc":[1,3,5],"qxc":[0,2,5],"fc3d":[0,1,2,3,4,5,6],"pl3":[0,1,2,3,4,5,6],"pl5":[0,1,2,3,4,5,6]}; let time="21:30";if(["ssq","qlc","fc3d"].includes(type))time="21:15"; if(map[type]&&map[type].includes(day)){return`今日开奖: ${time}`;}else{return"今日不开奖";} }
+  async render() { const freshSettings=ConfigManager.load(); this.settings=Object.assign({},this.defaultData,freshSettings); const data=await this.fetchData(); const w=new ListWidget(); let currentModel=this.settings.styleModel||"classic"; if(!config.runsInApp&&args.widgetParameter){if(args.widgetParameter.indexOf("style2")>-1)currentModel="modern";if(args.widgetParameter.indexOf("style3")>-1)currentModel="holiday";if(args.widgetParameter.indexOf("style4")>-1)currentModel="schedule";} if(currentModel==="modern"){this.activePrefix="s2_";}else if(currentModel==="holiday"){this.activePrefix="s3_";}else if(currentModel==="schedule"){this.activePrefix="s4_";}else{this.activePrefix="s1_";} let refreshMinutes=parseInt(this.settings.refreshInterval)||60;if(refreshMinutes<5)refreshMinutes=5;w.refreshAfterDate=new Date(new Date().getTime()+refreshMinutes*60000); const isDark=Device.isUsingDarkAppearance();const modeSuffix=isDark?"_night":"_day";const bgNameGeneric=`bg_${this.activePrefix.replace("_","")}.jpg`;const bgNameMode=`bg_${this.activePrefix.replace("_","")}${modeSuffix}.jpg`; let bgImg=ConfigManager.getImg(bgNameMode);if(!bgImg)bgImg=ConfigManager.getImg(bgNameGeneric); if(bgImg){w.backgroundImage=bgImg;}else{let colorKey1=isDark?`${this.activePrefix}color_bg_night`:`${this.activePrefix}color_bg_day`;let colorKey2=isDark?`${this.activePrefix}color_bg_2_night`:`${this.activePrefix}color_bg_2_day`;let c1=this.settings[colorKey1]||this.settings[`${this.activePrefix}color_bg`]||"#000000";let c2=this.settings[colorKey2]||this.settings[`${this.activePrefix}color_bg_2`];if(c2&&c2.length>0){let gradient=new LinearGradient();gradient.colors=[new Color(c1),new Color(c2)];gradient.locations=[0,1];w.backgroundGradient=gradient;}else{w.backgroundColor=new Color(c1);}} w.setPadding(10,4,5,4); if(this.widgetFamily==='medium')await this.renderMedium(w,data);else await this.renderLarge(w,data); return w; }
+  async renderMedium(w,data) { let body=w.addStack();body.layoutHorizontally();body.centerAlignContent();let left=body.addStack();left.layoutVertically();this.applyLayout(left,"med_left",{t:0,l:8,b:0,r:0});await this.renderInfoSide(left,data);body.addSpacer();let right=body.addStack();right.size=new Size(this.s(110,"weather"),0);right.layoutVertically();this.applyLayout(right,"med_right",{t:0,l:0,b:0,r:5});await this.renderWeatherSide(right,data.weather); }
+  async renderLarge(w,data) { const isHolidayStyle=(this.activePrefix==="s3_");const isScheduleStyle=(this.activePrefix==="s4_");const isComplexLayout=isHolidayStyle||isScheduleStyle;let top=w.addStack();top.layoutHorizontally();top.size=new Size(0,this.s(isComplexLayout?149:149,"weather"));let left=top.addStack();left.layoutVertically();this.applyLayout(left,"lg_tl",{t:0,l:8,b:0,r:0});await this.renderInfoSide(left,data);top.addSpacer();let right=top.addStack();right.size=new Size(this.s(110,"weather"),0);right.layoutVertically();this.applyLayout(right,"lg_tr",{t:0,l:0,b:0,r:5});await this.renderWeatherSide(right,data.weather);w.addSpacer(isComplexLayout?0:4);let midStack=w.addStack();midStack.layoutVertically();this.applyLayout(midStack,"lg_mid",{t:0,l:0,b:0,r:0});await this.renderTimeInfo(midStack);if(isComplexLayout){let bottomWrapper=w.addStack();bottomWrapper.layoutHorizontally();let leftBottomContainer=bottomWrapper.addStack();leftBottomContainer.layoutVertically();if(isHolidayStyle){this.applyLayout(leftBottomContainer,"lg_holiday",{t:0,l:5,b:0,r:0});await this.renderHolidayBox(leftBottomContainer);}else{this.applyLayout(leftBottomContainer,"lg_schedule",{t:0,l:5,b:0,r:0});await this.renderScheduleBox(leftBottomContainer,data.schedules);}bottomWrapper.addSpacer();let calendarContainer=bottomWrapper.addStack();calendarContainer.layoutVertically();let weekWrapper=calendarContainer.addStack();weekWrapper.layoutVertically();this.applyLayout(weekWrapper,"lg_week",{t:0,l:18,b:0,r:0});await this.renderWeekRow(weekWrapper);let gridWrapper=calendarContainer.addStack();gridWrapper.layoutVertically();this.applyLayout(gridWrapper,"lg_cal",{t:0,l:18,b:0,r:0});await this.renderCalendarGrid(gridWrapper);}else{w.addSpacer(4);let weekStack=w.addStack();weekStack.layoutVertically();this.applyLayout(weekStack,"lg_week",{t:0,l:0,b:0,r:0});await this.renderWeekRow(weekStack);let calStack=w.addStack();calStack.layoutVertically();this.applyLayout(calStack,"lg_cal",{t:0,l:0,b:0,r:0});await this.renderCalendarGrid(calStack);}w.addSpacer(); }
+  async renderHolidayBox(stack) { stack.centerAlignContent();let box=stack.addStack();box.size=new Size(this.s(110,"holiday"),0);box.layoutVertically();let holidayGap=parseFloat(this.settings[`${this.activePrefix}space_holiday_h`]||2);let titleStack=box.addStack();titleStack.centerAlignContent();let iSz=this.s(15,"holiday");let icon=titleStack.addImage(this.getSFIco("gift.fill"));icon.imageSize=new Size(iSz,iSz);icon.tintColor=new Color("#FF5555");titleStack.addSpacer(4);this.addText(titleStack,"假期倒数",17,"holiday",true);box.addSpacer(holidayGap);const holidays=this.getNextHolidays();for(let h of holidays){let r=box.addStack();r.centerAlignContent();this.addText(r,h.name,17,"holiday");r.addSpacer();let dayStack=r.addStack();dayStack.backgroundColor=h.days===0?new Color("#FF5555"):new Color("#ffffff",0.2);dayStack.cornerRadius=3;dayStack.setPadding(1,4,1,4);let t=dayStack.addText(h.days===0?"今天":h.days+"天");t.font=Font.boldSystemFont(this.s(13,"holiday"));t.textColor=h.days===0?Color.white():this.getConfColor("holiday");box.addSpacer(holidayGap);} }
+  async renderScheduleBox(stack,schedules) { stack.centerAlignContent();let box=stack.addStack();box.size=new Size(this.s(100,"schedule_title"),0);box.layoutVertically();let gap=parseFloat(this.settings[`${this.activePrefix}space_schedule_h`]||2);let maxCount=parseInt(this.settings[`${this.activePrefix}schedule_count`])||3;let skipStr=this.settings[`${this.activePrefix}schedule_offset`]||"";let skipIndices=new Set(skipStr.replace(/，/g,",").split(/[, ]+/).map(s=>parseInt(s)).filter(n=>!isNaN(n)&&n>0).map(n=>n-1));let targetSchedules=schedules.filter((_,index)=>!skipIndices.has(index));let titleStack=box.addStack();titleStack.centerAlignContent();let iSz=this.s(15,"schedule_title");let icon=titleStack.addImage(this.getSFIco("calendar.badge.clock"));icon.imageSize=new Size(iSz,iSz);icon.tintColor=new Color("#55BEF0");titleStack.addSpacer(4);this.addText(titleStack,"日程安排",17,"schedule_title",true);box.addSpacer(gap);if(targetSchedules.length===0){let r=box.addStack();r.centerAlignContent();this.addText(r,"无后续安排",12.2,"schedule_item");}else{let listWrapper=box.addStack();listWrapper.layoutVertically();let bgKey=`${this.activePrefix}color_schedule_bg`;let rawHex=this.settings[bgKey];if(!rawHex)rawHex="#666666";let finalColor;try{let tempC=new Color(rawHex);finalColor=new Color(tempC.hex,0.3);}catch(e){finalColor=new Color("#666666",0.3);}listWrapper.backgroundColor=finalColor;listWrapper.cornerRadius=4;listWrapper.setPadding(4,4,4,4);let count=Math.min(targetSchedules.length,maxCount);for(let i=0;i<count;i++){let item=targetSchedules[i];let r=listWrapper.addStack();r.topAlignContent();let dotWrapper=r.addStack();dotWrapper.setPadding(6,0,0,0);let dot=dotWrapper.addStack();dot.size=new Size(4,4);dot.cornerRadius=2;let itemColor;if(i<6){itemColor=this.getConfColor(`schedule_item_${i+1}`);}else{itemColor=new Color("#ffffff");}dot.backgroundColor=itemColor;r.addSpacer(4);let title=item.title;let splitIdx=-1;if(title.includes("柴油"))splitIdx=title.indexOf("柴油")+2;else if(title.includes("汽油"))splitIdx=title.indexOf("汽油")+2;if(splitIdx>-1){let vStack=r.addStack();vStack.layoutVertically();let t1=title.substring(0,splitIdx);let t2=title.substring(splitIdx).trim();this.addText(vStack,t1,12.2,"schedule_item",false,0,1,itemColor);this.addText(vStack,t2,12.2,"schedule_item",false,0,1,itemColor);}else{let t=this.addText(r,title,12.2,"schedule_item",false,0,2,itemColor);t.lineLimit=2;}if(i<count-1){listWrapper.addSpacer(gap);}}}} }
+  renderLotteryBalls(stack,numString,type,isCompact=false) { const cRed=new Color("#FF3B30");const cBlue=new Color("#007AFF");let zones=numString.split("+");let frontNums=zones[0].trim().split(/[\s,]+/);let backNums=[];if(zones.length>1){backNums=zones[1].trim().split(/[\s,]+/);} let baseFontSize=this.s(15,"lotteryItem");let ballDiameter=Math.round(baseFontSize*(isCompact?1.5:1.7));const renderOneBall=(n,color)=>{if(!n||n.trim()==="")return;let box=stack.addStack();box.size=new Size(ballDiameter,ballDiameter);box.cornerRadius=ballDiameter/2;box.backgroundColor=color;box.centerAlignContent();let t=box.addText(n);t.font=Font.boldSystemFont(baseFontSize);t.textColor=Color.white();stack.addSpacer(isCompact?3:4);};for(let n of frontNums)renderOneBall(n,cRed);for(let n of backNums)renderOneBall(n,cBlue); }
+  async renderInfoSide(stack,data) { const isStyle2=(this.activePrefix==="s2_");const date=new Date();let tStack=stack.addStack();tStack.centerAlignContent();let hasLottery=(this.settings.lottery_type&&this.settings.lottery_type!=="none"&&data.lottery);if(hasLottery){let parts=data.lottery.full.split(":");let titleStr=parts[0];let rawNums=parts.length>1?parts[1].trim():"";this.addText(tStack,titleStr,14,"lotteryTitle",true);tStack.addSpacer(6);let statusBox=tStack.addStack();statusBox.backgroundColor=new Color("#666666",0.3);statusBox.cornerRadius=4;statusBox.setPadding(1,4,1,4);statusBox.centerAlignContent();let statusText=this.getLotterySchedule(data.lottery.type);this.addText(statusBox,statusText,10,"lotteryInfo",false,0,1,this.getConfColor("lotteryInfo"));stack.addSpacer(2);let dStack=stack.addStack();dStack.centerAlignContent();this.renderLotteryBalls(dStack,rawNums,this.settings.lottery_type,isStyle2);if(isStyle2)stack.addSpacer(2);}else{this.addText(tStack,this.getGreeting(date),22,"greeting",true);let dStack=stack.addStack();dStack.centerAlignContent();this.addText(dStack,this.getDateStr(date),16,"date");dStack.addSpacer(4);let lunar=this.getLunarDate_Precise(date);this.addText(dStack,lunar.month+lunar.day,16,"lunar");} stack.addSpacer(2);let iStack=stack.addStack();iStack.centerAlignContent();this.addText(iStack,weekTitle[date.getDay()],16,"info");iStack.addSpacer(4);this.addText(iStack,`🔋${Math.round(Device.batteryLevel()*100)}%`,15,"info");iStack.addSpacer(4);let city=this.location.locality||"";if(this.location.subLocality)city+=` ${this.location.subLocality}`;if(!city)city="定位中";this.addText(iStack,`📍${city}`,15,"info");let desc=data.weather.alertTitle||data.weather.desc||"暂无数据";this.addText(stack,desc,12,"weather",false,2,3);stack.addSpacer(2);let mix=stack.addStack();mix.centerAlignContent();if(data.weather.future&&data.weather.future.length>0){let fStack=mix.addStack();let showLimit=isStyle2?7:3;let count=Math.min(data.weather.future.length,showLimit);let spaceGap=isStyle2?6:8;for(let i=0;i<count;i++){let item=data.weather.future[i];let col=fStack.addStack();col.layoutVertically();col.centerAlignContent();if(isStyle2){let d=col.addText(item.day);d.font=Font.systemFont(this.s(9,"poetry"));d.textColor=this.getConfColor("poetry");col.addSpacer(1);let iSz=this.s(13,"weather");let ico=col.addImage(this.getSFIco(item.ico));ico.imageSize=new Size(iSz,iSz);ico.tintColor=this.getConfColor("weather");col.addSpacer(1);let t=col.addText(`${item.min}/${item.max}°`);t.font=Font.systemFont(this.s(8,"poetry"));t.textColor=this.getConfColor("poetry");}else{this.addText(col,item.day,10,"poetry");col.addSpacer(1);let ico=col.addImage(this.getSFIco(item.ico));let iSz=this.s(15,"weather");ico.imageSize=new Size(iSz,iSz);ico.tintColor=this.getConfColor("weather");col.addSpacer(1);this.addText(col,`${item.min}/${item.max}°`,9,"poetry");}if(i<count-1)fStack.addSpacer(spaceGap);}if(isStyle2&&count<7){mix.addSpacer(4);let warn=mix.addText("API仅"+count+"天");warn.font=Font.systemFont(8);warn.textColor=Color.red();}}else{let e=mix.addText("无预报数据");e.font=Font.systemFont(10);e.textColor=Color.red();} mix.addSpacer(10);if(!isStyle2&&data.poetry&&data.poetry.data){let pStack=mix.addStack();pStack.layoutVertically();pStack.backgroundColor=new Color("#666",0.3);pStack.cornerRadius=4;pStack.setPadding(2,4,2,4);let content=data.poetry.data.content.replace(/[。，！]$/,"");let pt=this.addText(pStack,content,10,"poetry");pt.lineLimit=3;pStack.addSpacer(2);let author=`${data.poetry.data.origin.dynasty}·${data.poetry.data.origin.author}`;let at=this.addText(pStack,`— ${author}`,8,"poetry");at.rightAlignText();} if(this.activePrefix!=="s4_"&&data.schedules.length>0){stack.addSpacer(4);let sStack=stack.addStack();sStack.centerAlignContent();let sIco=sStack.addImage(this.getSFIco("megaphone"));sIco.imageSize=new Size(10,10);sIco.tintColor=this.getConfColor("info");sStack.addSpacer(4);this.addText(sStack,data.schedules[0].title,11,"info");} }
+  async renderWeatherSide(stack,w) { let top=stack.addStack();top.bottomAlignContent();stack.addSpacer(0);top.addSpacer();let ico=top.addImage(this.getSFIco(w.ico));let bigIcoSz=this.s(30,"weatherLarge");ico.imageSize=new Size(bigIcoSz,bigIcoSz);ico.tintColor=this.getConfColor("weatherLarge");top.addSpacer(4);let temp=this.addText(top,`${w.temp||'-'}°`,20,"weatherLarge");temp.font=Font.boldMonospacedSystemFont(this.s(20,"weatherLarge"));stack.addSpacer(4);const addR=(t)=>{let r=stack.addStack();r.addSpacer();this.addText(r,t,12,"weather");};addR(`湿度：${w.hum||'-'}`);addR(`舒适：${w.comfort||'-'}`);addR(`紫外：${w.uv||'-'}`);addR(`空气：${w.aqi||'-'}`);stack.addSpacer(2);let hl=stack.addStack();hl.addSpacer();let ht=hl.addText(`↑${w.max||'-'}°`);ht.font=Font.systemFont(this.s(11,"weather"));ht.textColor=new Color("#ff5555");hl.addSpacer(4);let lt=hl.addText(`↓${w.min||'-'}°`);lt.font=Font.systemFont(this.s(11,"weather"));lt.textColor=new Color("#55ff55");stack.addSpacer(1);let sun=stack.addStack();sun.addSpacer();let smIcoSz=this.s(12,"weather");let sunIco=sun.addImage(this.getSFIco("sunrise.fill"));sunIco.imageSize=new Size(smIcoSz,smIcoSz);this.addText(sun,w.sunrise||"--:--",11,"weather");sun.addSpacer(4);let setIco=sun.addImage(this.getSFIco("sunset.fill"));setIco.imageSize=new Size(smIcoSz,smIcoSz);this.addText(sun,w.sunset||"--:--",11,"weather");stack.addSpacer(2);let time=stack.addStack();time.addSpacer();let d=new Date();let min=d.getMinutes();this.addText(time,`更新 ${d.getHours()}:${min<10?'0'+min:min}`,10,"weather"); }
+  async renderTimeInfo(stack) { let timeStack=stack.addStack();timeStack.layoutHorizontally();timeStack.setPadding(0,4,0,4);const currentDate=new Date();const lunarObj=this.getLunarDate_Precise(currentDate);const zodiac=zodiacAnimals[(currentDate.getFullYear()-4)%12];const weekNumber=getWeekOfYear(currentDate);const dayOfYear=getDayOfYear(currentDate);const totalDays=(currentDate.getFullYear()%4===0)?366:365;let yiList=[];let jiList=[];try{const events=await CalendarEvent.today([]);for(const e of events){if(!e.isAllDay)continue;let t=e.title;if(t.includes("宜")){let content=t.substring(t.indexOf("宜")+1);if(content.includes("忌"))content=content.split("忌")[0];content=content.replace(/^[:：\s]+/,"");let items=content.split(/[\s,，、\.．]+/).filter(x=>x.trim().length>0&&x.length<6);if(items.length>0)yiList=items;}if(t.includes("忌")){let content=t.substring(t.indexOf("忌")+1);if(content.includes("宜"))content=content.split("宜")[0];content=content.replace(/^[:：\s]+/,"");let items=content.split(/[\s,，、\.．]+/).filter(x=>x.trim().length>0&&x.length<6);if(items.length>0)jiList=items;}}}catch(err){}if(yiList.length===0)yiList=getYiJiSimple(currentDate,0);if(jiList.length===0)jiList=getYiJiSimple(currentDate,1);let leftStack=timeStack.addStack();leftStack.layoutVertically();let zodiacLunarStack=leftStack.addStack();zodiacLunarStack.centerAlignContent();this.addText(zodiacLunarStack,`${zodiac}年 ${lunarObj.month}${lunarObj.day}`,12,"timeInfo");leftStack.addSpacer(0);let weekDayStack=leftStack.addStack();weekDayStack.centerAlignContent();this.addText(weekDayStack,`第${weekNumber}/53周 第 ${dayOfYear}/${totalDays}天`,10,"date");timeStack.addSpacer();let middleStack=timeStack.addStack();middleStack.centerAlignContent();this.renderYiJi(middleStack,"宜","#D32F2F",yiList,"#D32F2F");timeStack.addSpacer();let rightStack=timeStack.addStack();rightStack.centerAlignContent();this.renderYiJi(rightStack,"忌","#000000",jiList,"#ffffff"); }
+  renderYiJi(stack,title,circleColor,list,textColor) { let circle=stack.addStack();let cSz=this.s(30,"timeInfo");circle.size=new Size(cSz,cSz);circle.cornerRadius=cSz/2;circle.backgroundColor=new Color(circleColor);circle.centerAlignContent();let t=circle.addText(title);t.font=Font.boldSystemFont(this.s(17,"timeInfo"));t.textColor=Color.white();stack.addSpacer(8);let contentStack=stack.addStack();contentStack.layoutVertically();if(list.length>0){let l1=contentStack.addStack();this.addText(l1,list.slice(0,3).join("  "),10,"timeInfo",false,0,1,new Color(textColor));if(list.length>3){let l2=contentStack.addStack();this.addText(l2,list.slice(3,6).join("  "),10,"timeInfo",false,0,1,new Color(textColor));}} }
+  async renderWeekRow(stack) { let head=stack.addStack();head.setPadding(0,5,0,3);let defaultWeekGap=(this.activePrefix==="s3_"||this.activePrefix==="s4_")?9.1:30;let weekGap=parseFloat(this.settings[`${this.activePrefix}space_week_w`]||defaultWeekGap);for(let i=0;i<7;i++){let c=head.addStack();c.size=new Size(this.s(24,"calendar"),this.s(22,"calendar"));c.centerAlignContent();let t=c.addText(weekTitleShort[i]);t.font=Font.boldSystemFont(this.s(14,"calendar"));t.textColor=(i===0||i===6)?new Color("#ff5555"):this.getConfColor("calendar");if(i<6)head.addSpacer(weekGap);} }
+  async renderCalendarGrid(stack) { let d=new Date();let year=d.getFullYear();let month=d.getMonth();let grid=getMonthGrid(year,month);let colGap,rowGap;if(this.activePrefix==="s3_"||this.activePrefix==="s4_"){colGap=parseFloat(this.settings[`${this.activePrefix}space_cal_w`]||6.2);rowGap=parseFloat(this.settings[`${this.activePrefix}space_cal_h`]||0);}else{colGap=parseFloat(this.settings[`${this.activePrefix}space_cal_w`]||27.2);rowGap=parseFloat(this.settings[`${this.activePrefix}space_cal_h`]||3);}let cellSz=this.s(27,"calendar");for(let w=0;w<grid.length;w++){let row=stack.addStack();row.setPadding(0,7,0,2);for(let i=0;i<7;i++){let day=grid[w][i];let c=row.addStack();c.size=new Size(cellSz,cellSz);c.layoutVertically();c.centerAlignContent();if(day!==null){let dateObj=new Date(year,month,day);let isToday=(day===d.getDate());let isWk=(i===0||i===6);let top=c.addStack();top.size=new Size(this.s(17,"calendar"),this.s(17,"calendar"));top.centerAlignContent();if(isToday){let circle=top.addStack();circle.size=new Size(this.s(16,"calendar"),this.s(16,"calendar"));circle.cornerRadius=this.s(8,"calendar");circle.backgroundColor=new Color("#ffcc00");circle.centerAlignContent();let dt=circle.addText(day.toString());dt.font=Font.boldSystemFont(this.s(12,"calendar"));dt.textColor=Color.black();}else{let dt=top.addText(day.toString());dt.font=Font.boldSystemFont(this.s(12,"calendar"));dt.textColor=isWk?new Color("#ff5555"):this.getConfColor("calendar");}let lunar=this.getLunarDate_Precise(dateObj);let term=getSolarTerm(dateObj);let lStack=c.addStack();lStack.setPadding(-1,1.5,0,0);lStack.centerAlignContent();let lt=lStack.addText(term||lunar.day);lt.font=Font.systemFont(this.s(8,"calendar"));lt.textColor=new Color(this.getConfColor("calendar").hex,0.7);}if(i<6)row.addSpacer(colGap);}if(w<grid.length-1)stack.addSpacer(rowGap);} }
+  addText(stack,text,size,type,bold=false,top=0,lines=1,forceColor=null) { if(top>0)stack.addSpacer(top);let t=stack.addText(String(text));t.font=bold?Font.boldSystemFont(this.s(size,type)):Font.systemFont(this.s(size,type));t.textColor=forceColor||this.getConfColor(type);if(lines>1)t.lineLimit=lines;return t; }
+  s(size,type) { let key=`${this.activePrefix}size_${type}`;let scale=(parseInt(this.settings[key])||100)/100;let globalScale=(parseInt(this.settings.global_font_size)||100)/100;return Math.round(size*scale*globalScale); }
+  getConfColor(type) { let key=`${this.activePrefix}color_${type}`;let c=this.settings[key];return c?new Color(c):new Color(baseConfigKeys[`color_${type}`]); }
+  getSFIco(name) { try{return SFSymbol.named(name).image}catch{return SFSymbol.named("sun.max.fill").image} }
+  getDateStr(d) { let f=new DateFormatter();f.locale="zh_cn";f.dateFormat="yyyy年MM月d日";return f.string(d); }
+  getGreeting(d) { const h=d.getHours();let p=this.activePrefix;let custom="";if(h<5||h>=23){custom=this.settings[`${p}text_greeting_night`];if(!custom)custom=greetingText.nightGreeting;}else if(h<11){custom=this.settings[`${p}text_greeting_morning`];if(!custom)custom=greetingText.morningGreeting;}else if(h<13){custom=this.settings[`${p}text_greeting_noon`];if(!custom)custom=greetingText.noonGreeting;}else if(h<18){custom=this.settings[`${p}text_greeting_afternoon`];if(!custom)custom=greetingText.afternoonGreeting;}else{custom=this.settings[`${p}text_greeting_evening`];if(!custom)custom=greetingText.nightText;}return custom; }
+  airQuality(v) { if(v<=50)return"优";if(v<=100)return"良";if(v<=150)return"轻";if(v<=200)return"中";if(v<=300)return"重";return"严"; }
+  getLunarDate_Precise(date) { const lm=["正月","二月","三月","四月","五月","六月","七月","八月","九月","十月","冬月","腊月"];const ld=["初一","初二","初三","初四","初五","初六","初七","初八","初九","初十","十一","十二","十三","十四","十五","十六","十七","十八","十九","二十","廿一","廿二","廿三","廿四","廿五","廿六","廿七","廿八","廿九","三十"];let y=date.getFullYear(),m=date.getMonth()+1,d=date.getDate();let i,sum=348,offset=(Date.UTC(y,m-1,d)-Date.UTC(1900,0,31))/86400000;for(i=1900;i<2101&&offset>0;i++){sum=lYearDays(i);offset-=sum;}if(offset<0){offset+=sum;i--;}let leap=lunarInfo[i-1900]&0xf,isLeap=false,j,md;for(j=1;j<13&&offset>0;j++){md=(leap===j-1&&!isLeap)?((lunarInfo[i-1900]&0x10000)?30:29):((lunarInfo[i-1900]&(0x10000>>j))?30:29);if(isLeap&&j===leap+1)isLeap=false;else if(leap>0&&j===leap+1&&!isLeap){isLeap=true;--j;}offset-=md;}if(offset<0){offset+=md;--j;}if(j<1)j=1;if(j>12)j=12;return{month:(isLeap?"闰":"")+lm[j-1],day:ld[Math.floor(offset)]||"初一"}; }
+}
+
+function lYearDays(y){let i,sum=348;for(i=0x8000;i>0x8;i>>=1)sum+=(lunarInfo[y-1900]&i)?1:0;return sum+((lunarInfo[y-1900]&0xf)?((lunarInfo[y-1900]&0x10000)?30:29):0);}
+function getSolarTerm(date){const y=date.getFullYear();const info=[0,21208,42467,63836,85337,107014,128867,150921,173149,195551,218072,240693,263343,285989,308563,331033,353350,375494,397447,419210,440795,462224,483532,504758];const base=Date.UTC(1900,0,6,2,5);const off=31556925974.7*(y-1900);for(let i=0;i<24;i++){const t=new Date(base+off+info[i]*60000);if(t.getFullYear()===y&&t.getMonth()===date.getMonth()&&t.getDate()===date.getDate())return solarTerms[i];}return null;}
+function getMonthGrid(y,m){const f=new Date(y,m,1);const l=new Date(y,m+1,0);const days=l.getDate();const start=f.getDay();const g=[];let w=Array(start).fill(null);for(let i=1;i<=days;i++){w.push(i);if(w.length===7){g.push(w);w=[];}}if(w.length>0){while(w.length<7)w.push(null);g.push(w);}return g;}
+function getStemBranchDay(date){const b=new Date(1900,0,31);const diff=Math.floor((date-b)/86400000);return heavenlyStems[(diff%10+10)%10]+earthlyBranches[(diff%12+12)%12];}
+function getYellowBlackDay(date){let ld=getLunarDate_Precise_Simple(date);return yellowBlackDays[(ld.m+ld.d-2)%12];}
+function getLunarDate_Precise_Simple(date){let y=date.getFullYear(),m=date.getMonth()+1,d=date.getDate();let i,sum=348,offset=(Date.UTC(y,m-1,d)-Date.UTC(1900,0,31))/86400000;for(i=1900;i<2101&&offset>0;i++){sum=lYearDays(i);offset-=sum;}if(offset<0){offset+=sum;i--;}let leap=lunarInfo[i-1900]&0xf,isLeap=false,j,md;for(j=1;j<13&&offset>0;j++){md=(leap===j-1&&!isLeap)?((lunarInfo[i-1900]&0x10000)?30:29):((lunarInfo[i-1900]&(0x10000>>j))?30:29);if(isLeap&&j===leap+1)isLeap=false;else if(leap>0&&j===leap+1&&!isLeap){isLeap=true;--j;}offset-=md;}if(offset<0){offset+=md;--j;}if(j<1)j=1;if(j>12)j=12;return {m:j,d:Math.floor(offset)+1};}
+function getMansion(date){const b=new Date(1900,0,31);const diff=Math.floor((date-b)/86400000);return twentyEightMansions[(diff%28+28)%28];}
+function isAuspiciousDay(date) { const yb=getYellowBlackDay(date), man=getMansion(date), goodYb=["除","危","定","执","成","开"], goodMan=["角","房","尾","箕","斗","室","壁","娄","胃","毕","参","井","张","轸"]; return goodYb.includes(yb) && goodMan.includes(man); }
+function getTraditionalYiJi(date) { const sb=getStemBranchDay(date), yb=getYellowBlackDay(date), isAus=isAuspiciousDay(date); let yi=[],ji=[], stem=sb[0]; if(["甲","乙"].includes(stem)){yi.push("祭祀","祈福","入学","栽种");ji.push("动土","开市","破屋")}else if(["丙","丁"].includes(stem)){yi.push("嫁娶","开市","出行");ji.push("祭祀","动土","安葬")}else if(["戊","己"].includes(stem)){yi.push("修造","动土","入宅");ji.push("开市","嫁娶","出行")}else if(["庚","辛"].includes(stem)){yi.push("求医","诉讼","交易");ji.push("祈福","祭祀","安床")}else{yi.push("出行","移徙","纳财");ji.push("修造","动土","开仓")} const ybMap={"建":[["祭祀","祈福"],["嫁娶","开市"]],"除":[["治病","扫舍"],["出行","诉讼"]],"满":[["祭祀","开市"],["嫁娶","安葬"]],"平":[["修造","安床"],["开市","交易"]],"定":[["嫁娶","订盟"],["词讼","开渠"]],"执":[["捕捉","破土"],["嫁娶","移徙"]],"破":[["破屋","坏垣"],["嫁娶","开市"]],"危":[["安床","入宅"],["破土","开渠"]],"成":[["嫁娶","开市"],["造桥","安床"]],"收":[["纳财","交易"],["开市","安葬"]],"开":[["开市","交易"],["破土","安葬"]],"闭":[["筑堤","补垣"],["开市","出行"]]}; if(ybMap[yb]){yi.push(...ybMap[yb][0]);ji.push(...ybMap[yb][1])} if(isAus)yi.push("嫁娶","开市","入宅");else ji.push("嫁娶","开市","出行"); return {yi:[...new Set(yi)].slice(0,6),ji:[...new Set(ji)].slice(0,6)} }
+function getYiJiSimple(d,t){const r=getTraditionalYiJi(d);return t===0?r.yi:r.ji;}
+function getWeekOfYear(d){const D=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const dayNum=D.getUTCDay()||7;D.setUTCDate(D.getUTCDate()+4-dayNum);const yStart=new Date(Date.UTC(D.getUTCFullYear(),0,1));return Math.ceil((((D-yStart)/86400000)+1)/7);}
+function getDayOfYear(d){return Math.floor((d-new Date(d.getFullYear(),0,0))/1000/60/60/24);}
+function pad(n){return n<10?"0"+n:n;}
+
+// ⚠️ 重要：这里导出类，而不是直接运行
+module.exports = { CaishowWidget };
