@@ -3,7 +3,7 @@ module.exports = async (widget, ConfigManager, prefix) => {
     // 这里的 ConfigManager 就是主脚本传过来的配置管理器
 
     const a = new Alert();
-    a.title = "☁️ 云端编辑器";
+    a.title = "透明背景编辑器";
     a.message = "已加载最新云端代码\n\n步骤：\n1. 主屏幕长按进入编辑模式\n2. 截取最右侧空白页\n3. 选择该截图";
     a.addAction("开始选择截图");
     a.addCancelAction("取消");
