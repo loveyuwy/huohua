@@ -21,8 +21,6 @@ module.exports = async (widget, ConfigManager, prefix) => {
 
     // 1. 确定组件尺寸
     let sizeType = "medium";
-    // 注意：外部模块无法直接读取全局 config，建议默认 medium 或通过参数传递
-    // 这里我们简单判断一下，如果是在 App 内运行则弹窗
     if (!config.runsInWidget) { 
         const sizeAlert = new Alert();
         sizeAlert.title = "组件大小";
@@ -92,28 +90,29 @@ module.exports = async (widget, ConfigManager, prefix) => {
     }
 };
 
-// --- 核心裁剪算法 (V15) ---
+// --- 核心裁剪算法 (V15 - iPhone 11 Updated) ---
 async function cropImage(img, size, position) {
     const h = img.size.height;
     const w = img.size.width;
     
     const phones = {
-        "2796": { 
-            name: "14/15/16 Pro Max",
-            top: 460,        
-            middle: 1060,    
-            bottom: 1660,    
-            large_h: 1147,   
-            medium_h: 546,   
-            left: 100,       
-            right: 100,      
-            width_fix: 1091,
-            offset_fix: 4 
-        },
+        "2796": { name: "14/15/16 Pro Max", top: 460, middle: 1060, bottom: 1660, large_h: 1147, medium_h: 546, left: 100, right: 100, width_fix: 1091, offset_fix: 4 },
         "2556": { name: "14/15/16 Pro", top: 235, middle: 863, bottom: 1491, large_h: 1066, medium_h: 512, left: 92, right: 92 },
         "2532": { name: "12/13/14", top: 212, middle: 833, bottom: 1454, large_h: 1052, medium_h: 507, left: 78, right: 78 },
         "2778": { name: "12/13/14 Max", top: 228, middle: 909, bottom: 1590, large_h: 1136, medium_h: 555, left: 96, right: 96 },
-        "2436": { name: "X/XS/11Pro", top: 212, middle: 833, bottom: 1454, large_h: 1052, medium_h: 507, left: 72, right: 72 }
+        "2436": { name: "X/XS/11Pro", top: 212, middle: 833, bottom: 1454, large_h: 1052, medium_h: 507, left: 72, right: 72 },
+        
+        // --- 新增 iPhone 11 配置 ---
+        "1792": { 
+            name: "iPhone 11/XR", 
+            top: 160,       // 你的数据：顶部上边
+            middle: 580,    // 你的数据：底部上边（对应中间位置）
+            bottom: 1000,   // 推算：580 + (580-160)
+            large_h: 758,   // 你的数据：918 - 160
+            medium_h: 362,  // 估算：适配大号高度
+            left: 54,       // 你的数据：左边
+            right: 54       // 你的数据：右边 (828 - 774 = 54)
+        }
     };
 
     let cropY = 0;
@@ -146,6 +145,7 @@ async function cropImage(img, size, position) {
         }
 
     } else {
+        // 通用备用算法
         const topMargin = h * 0.091;
         const gap = h * 0.045;
         const height = (h * 0.88 - topMargin - (2 * gap)) / 3;
