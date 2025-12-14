@@ -1,7 +1,4 @@
 module.exports = async (widget, ConfigManager, prefix) => {
-    // 这里的 widget 参数就是主脚本里的 'this'
-    // 这里的 ConfigManager 就是主脚本传过来的配置管理器
-
     const a = new Alert();
     a.title = "透明背景编辑器";
     a.message = "\n步骤：\n1. 主屏幕长按进入编辑模式\n2. 截取最右侧空白页\n3. 选择该截图";
@@ -90,29 +87,29 @@ module.exports = async (widget, ConfigManager, prefix) => {
     }
 };
 
-// --- 核心裁剪算法 (V15 - iPhone 11 Updated) ---
+// --- 核心裁剪算法 (Updated for 14 Pro Max Custom) ---
 async function cropImage(img, size, position) {
     const h = img.size.height;
     const w = img.size.width;
     
     const phones = {
-        "2796": { name: "14/15/16 Pro Max", top: 460, middle: 1060, bottom: 1660, large_h: 1147, medium_h: 546, left: 100, right: 100, width_fix: 1091, offset_fix: 4 },
+        // --- 14 Pro Max 定制版 (根据用户最新测量) ---
+        "2796": { 
+            name: "14/15/16 Pro Max", 
+            top: 282,       // 你的数据：大号顶部上边
+            middle: 918,    // 你的数据：大号底部上边
+            bottom: 1553,   // 推算：大号底部下边(2064) - 中号高度(511)
+            large_h: 1147,  // 你的数据：1429 - 282
+            medium_h: 511,  // 推算：重叠区域 1429 - 918
+            left: 100,      // 你的数据：左边
+            right: 100,     // 预留
+            width_fix: 1091 // 你的数据：1191 - 100
+        },
         "2556": { name: "14/15/16 Pro", top: 235, middle: 863, bottom: 1491, large_h: 1066, medium_h: 512, left: 92, right: 92 },
         "2532": { name: "12/13/14", top: 212, middle: 833, bottom: 1454, large_h: 1052, medium_h: 507, left: 78, right: 78 },
         "2778": { name: "12/13/14 Max", top: 228, middle: 909, bottom: 1590, large_h: 1136, medium_h: 555, left: 96, right: 96 },
         "2436": { name: "X/XS/11Pro", top: 212, middle: 833, bottom: 1454, large_h: 1052, medium_h: 507, left: 72, right: 72 },
-        
-        // --- 新增 iPhone 11 配置 ---
-        "1792": { 
-            name: "iPhone 11/XR", 
-            top: 160,       // 你的数据：顶部上边
-            middle: 580,    // 你的数据：底部上边（对应中间位置）
-            bottom: 1000,   // 推算：580 + (580-160)
-            large_h: 758,   // 你的数据：918 - 160
-            medium_h: 362,  // 估算：适配大号高度
-            left: 54,       // 你的数据：左边
-            right: 54       // 你的数据：右边 (828 - 774 = 54)
-        }
+        "1792": { name: "iPhone 11/XR", top: 160, middle: 580, bottom: 1000, large_h: 758, medium_h: 362, left: 54, right: 54 }
     };
 
     let cropY = 0;
@@ -131,6 +128,7 @@ async function cropImage(img, size, position) {
             cropW = w - cfg.left - cfg.right;
         }
         
+        // 移除了 offset_fix 的处理逻辑，直接读取
         const offset = cfg.offset_fix || 0;
         
         if (size === "large") {
