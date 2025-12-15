@@ -16,7 +16,6 @@ module.exports = async (widget, ConfigManager, prefix) => {
     }
     if (!img) return;
 
-    // 1. 确定组件尺寸
     let sizeType = "medium";
     if (!config.runsInWidget) { 
         const sizeAlert = new Alert();
@@ -31,7 +30,6 @@ module.exports = async (widget, ConfigManager, prefix) => {
         sizeType = config.widgetFamily || "medium";
     }
 
-    // 2. 确定位置
     const posAlert = new Alert();
     posAlert.title = "组件位置";
     
@@ -58,7 +56,6 @@ module.exports = async (widget, ConfigManager, prefix) => {
     if (pIdx === -1) return;
     const positionKey = positions[pIdx].key;
 
-    // 3. 执行裁剪
     try {
         const croppedImg = await cropImage(img, sizeType, positionKey);
         if (croppedImg) {
@@ -87,24 +84,12 @@ module.exports = async (widget, ConfigManager, prefix) => {
     }
 };
 
-// --- 核心裁剪算法 (Updated for 14 Pro Max Custom) ---
 async function cropImage(img, size, position) {
     const h = img.size.height;
     const w = img.size.width;
     
     const phones = {
-        // --- 14 Pro Max 定制版 (根据用户最新测量) ---
-        "2796": { 
-            name: "14/15/16 Pro Max", 
-            top: 282,       // 你的数据：大号顶部上边
-            middle: 918,    // 你的数据：大号底部上边
-            bottom: 1553,   // 推算：大号底部下边(2064) - 中号高度(511)
-            large_h: 1147,  // 你的数据：1429 - 282
-            medium_h: 511,  // 推算：重叠区域 1429 - 918
-            left: 100,      // 你的数据：左边
-            right: 100,     // 预留
-            width_fix: 1091 // 你的数据：1191 - 100
-        },
+        "2796": { name: "14/15/16 Pro Max", top: 282, middle: 918, bottom: 1553, large_h: 1147, medium_h: 511, left: 100, right: 100, width_fix: 1091 },
         "2556": { name: "14/15/16 Pro", top: 235, middle: 863, bottom: 1491, large_h: 1066, medium_h: 512, left: 92, right: 92 },
         "2532": { name: "12/13/14", top: 212, middle: 833, bottom: 1454, large_h: 1052, medium_h: 507, left: 78, right: 78 },
         "2778": { name: "12/13/14 Max", top: 228, middle: 909, bottom: 1590, large_h: 1136, medium_h: 555, left: 96, right: 96 },
@@ -128,7 +113,6 @@ async function cropImage(img, size, position) {
             cropW = w - cfg.left - cfg.right;
         }
         
-        // 移除了 offset_fix 的处理逻辑，直接读取
         const offset = cfg.offset_fix || 0;
         
         if (size === "large") {
@@ -143,7 +127,6 @@ async function cropImage(img, size, position) {
         }
 
     } else {
-        // 通用备用算法
         const topMargin = h * 0.091;
         const gap = h * 0.045;
         const height = (h * 0.88 - topMargin - (2 * gap)) / 3;
