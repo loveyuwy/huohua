@@ -6,14 +6,11 @@
 [Argument]
 enable_token_capture = switch, true, true, tag = 抓取Token开关, desc = 默认开启
 cron = input, "0 10,11,12 * * *", tag = 执行时间, desc = CRON表达式
-silent_switch = switch, false, false, tag = 静默运行, desc = 开启后签到成功将不推送通知
+silent_switch = switch, false, false, tag = 静默运行, desc = 开启后不推送通知
 
 [Script]
-# 获取 Token
+# 获取 Token 保持不变
 http-response ^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjtoken.js, requires-body=true, timeout=60, tag=声荐自动抓取token, enable = {enable_token_capture}
 
-# 每日任务 (将参数附着在 URL 后面，确保脚本在列表显示)
-cron {cron} script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/sjqd2.js?silent={silent_switch}, timeout=60, tag=声荐每日任务
-
-[MITM]
-hostname = xcx.myinyun.com
+# 每日任务：使用标准 argument 传递，Loon 会将其放入 $argument
+cron {cron} script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/sjqd2.js, timeout=60, tag=声荐每日任务, argument="{silent_switch}"
