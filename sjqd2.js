@@ -1,47 +1,87 @@
-const $ = new Env("声荐调试版");
+const $ = new Env("声荐组合任务");
 const tokenKey = "shengjian_auth_token";
 
-// --- 调试探测逻辑 ---
+// --- 静默逻辑加固 ---
 let isSilent = false;
-let debugInfo = "未获取到参数";
-
-if (typeof $argument !== "undefined") {
-  const rawArg = $argument;
-  const argType = typeof $argument;
+if (typeof $argument !== "undefined" && $argument) {
   const argStr = String($argument).toLowerCase();
+  // 打印日志方便排查，如果还是输出 {silent_switch} 说明 Loon 没替换变量
+  console.log(`[参数检查] 当前接收值: ${argStr}`);
   
-  // 核心判断
   if (argStr.includes("true") || argStr.includes("#") || argStr.includes("1")) {
     isSilent = true;
   }
-  
-  debugInfo = `原始值: [${rawArg}], 类型: [${argType}], 判定静默: [${isSilent}]`;
 }
-
-console.log(`🔍 调试信息: ${debugInfo}`);
 
 const rawToken = $.read(tokenKey);
 const token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
 
+const commonHeaders = {
+  "Authorization": token,
+  "Content-Type": "application/json",
+  "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.64",
+  "Referer": "https://servicewechat.com/wxa25139b08fe6e2b6/23/page-frame.html"
+};
+
 (async () => {
   if (!token) {
-    if (!isSilent) $.notify("❌ 调试: 未找到Token", "", "请先获取。");
+    if (!isSilent) $.notify("❌ 声荐失败", "未找到Token", "请打开小程序获取。");
     return $.done();
   }
 
-  // 模拟请求结果进行测试
-  const signMsg = "📋 签到: 调试中";
-  const flowerMsg = "🌸 领花: 调试中";
-  const body = `${signMsg}\n${flowerMsg}`;
+  const [signResult, flowerResult] = await Promise.all([signIn(), claimFlower()]);
 
-  // 关键：根据判定结果决定是否弹窗
-  if (isSilent) {
-    console.log(`✅ [静默生效] 拦截通知内容:\n${body}`);
-  } else {
-    $.notify("声荐任务结果 (非静默)", "参数检测中", `${body}\n\n${debugInfo}`);
+  // Token 失效这类严重错误强制通知
+  if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
+    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取令牌。");
+    return $.done();
   }
 
-})().finally(() => $.done());
+  const lines = [];
+  if (signResult.message) lines.push(signResult.message);
+  if (flowerResult.message) lines.push(flowerResult.message);
+  const body = lines.join("\n");
 
-// --- 简化版 Env (排除所有 arguments 冲突) ---
-function Env(n){this.name=n;this.notify=(t,s,b)=>{if(typeof $notification!="undefined")$notification.post(t,s,b);else if(typeof $notify!="undefined")$notify(t,s,b);else console.log(`${t}\n${s}\n${b}`)};this.read=k=>{if(typeof $persistentStore!="undefined")return $persistentStore.read(k);if(typeof $prefs!="undefined")return $prefs.valueForKey(k)};this.done=v=>{if(typeof $done!="undefined")$done(v)}}
+  if (isSilent) {
+    console.log(`[静默模式] 拦截通知内容:\n${body}`);
+  } else {
+    $.notify("声荐任务结果", "", body);
+  }
+})().catch((e) => {
+  console.log(`[脚本异常] ${e}`);
+  if (!isSilent) $.notify("💥 声荐脚本崩溃", "", String(e));
+}).finally(() => $.done());
+
+// --- 网络请求函数 ---
+function signIn() {
+  return new Promise((resolve) => {
+    $.put({ url: "https://xcx.myinyun.com:4438/napi/gift", headers: commonHeaders, body: "{}" }, (err, res, data) => {
+      if (err) return resolve({ status: 'error', message: '📡 签到: 网络错误' });
+      const code = res ? (res.status || res.statusCode) : 0;
+      if (code === 401) return resolve({ status: 'token_error' });
+      try {
+        const result = JSON.parse(data || "{}");
+        if (result.msg === "ok") resolve({ status: 'success', message: `✅ 签到: ${result.data?.prizeName || "成功"}` });
+        else if (String(result.msg || "").includes("已经")) resolve({ status: 'info', message: '📋 签到: 今天已签到' });
+        else resolve({ status: 'error', message: `🚫 签到: ${result.msg || "未知"}` });
+      } catch (e) { resolve({ status: 'error', message: '🤯 解析失败' }); }
+    });
+  });
+}
+
+function claimFlower() {
+  return new Promise((resolve) => {
+    $.post({ url: "https://xcx.myinyun.com:4438/napi/flower/get", headers: commonHeaders, body: "{}" }, (err, res, data) => {
+      if (err || !data) return resolve({ status: 'info', message: '🌸 领花: 任务完成' });
+      if (data === "true") return resolve({ status: 'success', message: '🌺 已领小红花' });
+      try {
+        const obj = JSON.parse(data);
+        if (obj.statusCode === 401) resolve({ status: 'token_error' });
+        else resolve({ status: 'info', message: `🌸 领花: ${obj.message || '已领'}` });
+      } catch (e) { resolve({ status: 'info', message: '👍 领花: 正常' }); }
+    });
+  });
+}
+
+// --- Env 适配 ---
+function Env(n){this.name=n;this.notify=(t,s,b)=>{if(typeof $notification!="undefined")$notification.post(t,s,b);else if(typeof $notify!="undefined")$notify(t,s,b);else console.log(`${t}\n${s}\n${b}`)};this.read=k=>{if(typeof $persistentStore!="undefined")return $persistentStore.read(k);if(typeof $prefs!="undefined")return $prefs.valueForKey(k)};this.put=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.put(r,c)};this.post=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.post(r,c)};this.done=v=>{if(typeof $done!="undefined")$done(v)}}
