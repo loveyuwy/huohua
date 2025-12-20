@@ -1,28 +1,30 @@
 /*
-声荐每日任务 - 兼容版
-支持: Surge (argument 传参) & Loon (URL 传参)
+声荐每日任务 - 极致兼容版
 */
 
 const $ = new Env("声荐组合任务");
 const tokenKey = "shengjian_auth_token";
 
-// --- 核心：参数解析逻辑 ---
-const IS_SILENT = (() => {
+// --- 参考酷我脚本的参数提取逻辑 ---
+const ARGS = (() => {
     let silent = false;
-    let input = "";
+    let input = null;
 
-    if (typeof $argument !== "undefined" && $argument) {
-        input = String($argument);
+    if (typeof $argument !== "undefined" && $argument !== "") {
+        input = $argument;
     } else if (typeof $environment !== "undefined" && $environment.sourcePath) {
-        // 参考酷我脚本逻辑，从 URL 路径获取参数
-        input = $environment.sourcePath.split(/[?#]/)[1] || "";
+        input = $environment.sourcePath.split(/[?#]/)[1];
     }
 
-    // 只要包含 true、#、或者 silent=true，即判定为静默
-    if (input.includes("true") || input.includes("#") || input.includes("silent=true")) {
-        silent = true;
+    if (input) {
+        // 强制转为字符串并清洗
+        let str = String(input).toLowerCase();
+        // 判定静默的关键词：存在 "true"、"1"、"#" 或者 "silent=true"
+        if (str.includes("true") || str.includes("1") || str.includes("#") || str.includes("silent=true")) {
+            silent = true;
+        }
     }
-    return silent;
+    return { silent };
 })();
 
 const rawToken = $.read(tokenKey);
@@ -36,7 +38,9 @@ const commonHeaders = {
 };
 
 (async () => {
-    console.log(`--- 声荐任务开始 (静默模式: ${IS_SILENT ? "开启" : "关闭"}) ---`);
+    console.log(`--- 声荐任务开始 ---`);
+    console.log(`检测到静默参数: ${JSON.stringify(ARGS)}`);
+    console.log(`最终静默判定: ${ARGS.silent ? "开启 (不通知)" : "关闭 (正常通知)"}`);
 
     if (!token) {
         $.notify("❌ 声荐失败", "未找到令牌", "请先打开小程序获取。");
@@ -53,8 +57,8 @@ const commonHeaders = {
     const body = [signRes.message, flowerRes.message].filter(Boolean).join("\n");
     const hasError = signRes.status === 'error' || flowerRes.status === 'error';
 
-    // 静默逻辑：开启静默且没有报错时，不发通知
-    if (IS_SILENT && !hasError) {
+    // 静默逻辑
+    if (ARGS.silent && !hasError) {
         console.log(`[静默执行记录]:\n${body}`);
     } else {
         $.notify(hasError ? "❌ 声荐异常" : "✅ 声荐完成", "", body);
