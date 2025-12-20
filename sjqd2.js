@@ -1,6 +1,8 @@
 /*
-声荐每日任务 - 组合脚本 (签到 + 领小红花)
-修正版：兼容 Loon (true/false 字符串) 与 Surge (# 字符)
+声荐每日任务 - 最终兼容版 (签到 + 领小红花)
+支持说明：
+1. Surge: 参数填 # 开启静默，留空关闭。
+2. Loon:  开关插件中的“静默运行”即可。
 */
 
 const $ = new Env("声荐组合任务");
@@ -77,17 +79,18 @@ function claimFlower() {
 (async () => {
   console.log("--- 声荐组合任务开始执行 ---");
 
-  // --- 修正后的参数读取逻辑 ---
+  // --- 核心修复：更强的参数识别逻辑 ---
   let isSilent = false;
-  if (typeof $argument !== "undefined" && $argument) {
-    // 打印参数以便调试
-    console.log("检测到参数内容: " + $argument);
-    // 只要参数包含 "true" (Loon开关开启) 或者 "#" (Surge填了#)，就进入静默模式
-    if ($argument.toString().indexOf("true") !== -1 || $argument.toString().indexOf("#") !== -1) {
+  if (typeof $argument !== "undefined" && $argument !== null) {
+    const argStr = String($argument).toLowerCase().trim();
+    console.log("检测到原始参数: " + argStr);
+    
+    // 只要包含 true、# 或者数字 1，即视为静默模式
+    if (argStr.includes("true") || argStr.includes("#") || argStr === "1") {
       isSilent = true;
     }
   }
-  console.log("当前静默状态: " + (isSilent ? "开启" : "关闭"));
+  console.log("静默模式判定结果: " + (isSilent ? "开启 (不弹窗)" : "关闭 (弹窗提醒)"));
 
   if (!token) {
     $.notify("❌ 声荐任务失败", "未找到令牌", "请先运行“声荐获取令牌”脚本。");
@@ -96,12 +99,12 @@ function claimFlower() {
   }
 
   const [signResult, flowerResult] = await Promise.all([signIn(), claimFlower()]);
-  console.log("--- 执行结果 ---");
+  console.log("--- 执行详情 ---");
   console.log(JSON.stringify([signResult, flowerResult], null, 2));
 
-  // 认证失败依然始终通知
+  // 账号失效属于必须处理的问题，不受静默开关限制
   if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
-    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取令牌。");
+    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新打开小程序获取令牌。");
     isScriptFinished = true;
     return $.done();
   }
@@ -120,9 +123,9 @@ function claimFlower() {
 
   const body = lines.join("\n");
 
-  // 静默逻辑判断
+  // 最终推送逻辑
   if (isSilent && !hasError) {
-    console.log(`[静默中] 跳过系统通知。内容:\n${body}`);
+    console.log(`[静默运行] 任务已完成，仅在日志记录内容:\n${body}`);
   } else {
     $.notify(title, "", body);
   }
