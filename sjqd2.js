@@ -1,22 +1,22 @@
-const $ = new Env("声荐终极版");
+const $ = new Env("声荐终极修复版");
 const tokenKey = "shengjian_auth_token";
 
-// --- 针对 Loon 3.3.7 变量替换失效的终极兼容逻辑 ---
+// --- 静默逻辑判定 (针对 Loon 3.3.7 深度优化) ---
 let isSilent = false;
 if (typeof $argument !== "undefined" && $argument) {
   const argStr = String($argument).toLowerCase();
-  console.log(`[参数检查] 原始参数内容: ${argStr}`);
+  console.log(`[参数检查] 当前参数内容: ${argStr}`);
   
-  // 1. 正常识别 (Loon 成功替换变量的情况)
+  // 1. 识别 Loon 成功替换的 true/false 或用户手动填写的 1
   if (argStr.includes("true") || argStr.includes("#") || argStr.includes("1")) {
     isSilent = true;
   }
   
-  // 2. 补丁识别 (如果 Loon 没替换变量，日志显示 {silent_switch}，且你确认想静默)
-  // 如果你需要彻底屏蔽通知，可以将下方 false 改为 true
+  // 2. 核心补丁：如果 Loon 变量替换失效 (显示原始占位符)
+  // 只要触发此 Bug，脚本默认开启静默，防止频繁弹窗
   if (argStr.includes("{silent_switch}")) {
-    console.log("⚠️ Loon 变量引用失效，请手动在插件脚本设置中将参数改为 1 或 true");
-    // isSilent = true; // <--- 如果还是弹窗，请把这行前面的双斜杠删掉
+    console.log("⚠️ 检测到 Loon 变量替换 Bug，已自动开启静默模式防止弹窗。");
+    isSilent = true; 
   }
 }
 
@@ -38,7 +38,7 @@ const commonHeaders = {
 
   const [signResult, flowerResult] = await Promise.all([signIn(), claimFlower()]);
 
-  // Token 失效强制通知
+  // Token 失效强制通知，这关系到脚本能否继续运行
   if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
     $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取令牌。");
     return $.done();
@@ -75,13 +75,13 @@ function signIn() {
 function claimFlower() {
   return new Promise((resolve) => {
     $.post({ url: "https://xcx.myinyun.com:4438/napi/flower/get", headers: commonHeaders, body: "{}" }, (err, res, data) => {
-      if (err || !data) return resolve({ status: 'info', message: '🌸 领花: 记录正常' });
+      if (err || !data) return resolve({ status: 'info', message: '🌸 领花: 正常' });
       if (data === "true") return resolve({ status: 'success', message: '🌺 已领小红花' });
       try {
         const obj = JSON.parse(data);
         if (obj.statusCode === 401) resolve({ status: 'token_error' });
         else resolve({ status: 'info', message: `🌸 领花: ${obj.message || '已领'}` });
-      } catch (e) { resolve({ status: 'info', message: '👍 领花: 正常' }); }
+      } catch (e) { resolve({ status: 'info', message: '👍 领花: 记录正常' }); }
     });
   });
 }
