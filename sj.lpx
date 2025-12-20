@@ -12,8 +12,8 @@ silent_switch = switch, false, false, tag = 静默运行, desc = 开启后签到
 # 获取 Token
 http-response ^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjtoken.js, requires-body=true, timeout=60, tag=声荐自动抓取token, enable = {enable_token_capture}
 
-# 每日任务 (去掉 argument，让脚本恢复显示)
-cron {cron} script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/sjqd2.js, timeout=60, tag=声荐每日任务
+# 每日任务 (将参数附着在 URL 后面，确保脚本在列表显示)
+cron {cron} script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/sjqd2.js?silent={silent_switch}, timeout=60, tag=声荐每日任务
 
 [MITM]
 hostname = xcx.myinyun.com
