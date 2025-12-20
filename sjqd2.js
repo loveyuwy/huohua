@@ -1,104 +1,168 @@
-/*
-声荐每日自动签到组合脚本 - 兼容版
-*/
-
 const $ = new Env("声荐组合任务");
 const tokenKey = "shengjian_auth_token";
-let isScriptFinished = false;
 
-// --- 终极兼容解析逻辑 ---
+/* ========= 静默参数解析（Surge / Loon 通用） ========= */
 let isSilent = false;
-if (typeof $argument !== "undefined" && $argument) {
-  const argStr = String($argument).toLowerCase();
-  // 打印日志方便调试，可以在 Loon 的日志里查看
-  console.log(`[参数检查] 传入参数为: ${argStr}`);
-  
-  // 只要参数中包含 true, 1, #, 或者 silent=true (Loon), 都会判定为静默
-  if (argStr.includes("true") || argStr.includes("1") || argStr.includes("#")) {
+
+if (typeof $argument !== "undefined") {
+  // Loon：switch → boolean
+  if ($argument === true) {
     isSilent = true;
   }
+
+  // Surge / Loon：字符串
+  if (typeof $argument === "string") {
+    const argStr = $argument.trim().toLowerCase();
+    if (
+      argStr === "true" ||
+      argStr === "1" ||
+      argStr === "#" ||
+      argStr === "silent"
+    ) {
+      isSilent = true;
+    }
+  }
 }
 
+console.log(`[静默模式] isSilent=${isSilent}, raw=${String($argument)}`);
+
+/* ========= Token ========= */
 const rawToken = $.read(tokenKey);
-const token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
+const token = rawToken
+  ? rawToken.startsWith("Bearer ")
+    ? rawToken
+    : `Bearer ${rawToken}`
+  : null;
 
 const commonHeaders = {
-  "Authorization": token,
+  Authorization: token,
   "Content-Type": "application/json",
-  "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.64 NetType/4G Language/zh_CN",
-  "Referer": "https://servicewechat.com/wxa25139b08fe6e2b6/23/page-frame.html"
+  "User-Agent":
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.64 NetType/4G Language/zh_CN",
+  Referer:
+    "https://servicewechat.com/wxa25139b08fe6e2b6/23/page-frame.html",
 };
 
-// ----------------- Step 1: 签到 -----------------
+/* ========= 签到 ========= */
 function signIn() {
   return new Promise((resolve) => {
-    const req = { url: "https://xcx.myinyun.com:4438/napi/gift", headers: commonHeaders, body: "{}" };
-    $.put(req, (err, res, data) => {
-      if (err) return resolve({ status: 'error', message: '📡 签到: 网络错误' });
-      const code = res ? (res.status || res.statusCode) : 0;
-      if (code === 401) return resolve({ status: 'token_error', message: 'Token 已过期' });
-      try {
-        const result = JSON.parse(data);
-        if ((code === 200 || code === "200") && result.msg === "ok") {
-          resolve({ status: 'success', message: `✅ 签到: ${result.data?.prizeName || "成功"}` });
-        } else if (String(result.msg || "").includes("已经")) {
-          resolve({ status: 'info', message: '📋 签到: 今天已签到' });
-        } else {
-          resolve({ status: 'error', message: `🚫 签到: ${result.msg || "未知错误"}` });
+    $.put(
+      {
+        url: "https://xcx.myinyun.com:4438/napi/gift",
+        headers: commonHeaders,
+        body: "{}",
+      },
+      (err, res, data) => {
+        if (err) return resolve({ status: "error", message: "📡 签到：网络错误" });
+        const code = res?.status || res?.statusCode || 0;
+        if (code === 401)
+          return resolve({ status: "token_error", message: "Token 已过期" });
+
+        try {
+          const r = JSON.parse(data);
+          if ((code === 200 || code === "200") && r.msg === "ok") {
+            resolve({
+              status: "success",
+              message: `✅ 签到：${r.data?.prizeName || "成功"}`,
+            });
+          } else if (String(r.msg || "").includes("已经")) {
+            resolve({ status: "info", message: "📋 今日已签到" });
+          } else {
+            resolve({
+              status: "error",
+              message: `🚫 签到失败：${r.msg || "未知错误"}`,
+            });
+          }
+        } catch {
+          resolve({ status: "error", message: "🤯 签到解析失败" });
         }
-      } catch { resolve({ status: 'error', message: '🤯 签到: 解析失败' }); }
-    });
+      }
+    );
   });
 }
 
-// ----------------- Step 2: 领取小红花 -----------------
+/* ========= 领花 ========= */
 function claimFlower() {
   return new Promise((resolve) => {
-    const req = { url: "https://xcx.myinyun.com:4438/napi/flower/get", headers: commonHeaders, body: "{}" };
-    $.post(req, (err, res, data) => {
-      if (err) return resolve({ status: 'info', message: '⏰ 领花: 未到时间' });
-      if (data === "true") return resolve({ status: 'success', message: '🌺 已领小红花' });
-      try {
-        const obj = JSON.parse(data);
-        if (obj.statusCode === 401) resolve({ status: 'token_error', message: 'Token 已过期' });
-        else resolve({ status: 'info', message: `🌸 领花: ${obj.message || '未知'}` });
-      } catch { resolve({ status: 'info', message: '👍 领花: 已领过' }); }
-    });
+    $.post(
+      {
+        url: "https://xcx.myinyun.com:4438/napi/flower/get",
+        headers: commonHeaders,
+        body: "{}",
+      },
+      (err, res, data) => {
+        if (err) return resolve({ status: "info", message: "⏰ 未到领取时间" });
+        if (data === "true")
+          return resolve({ status: "success", message: "🌺 小红花已领取" });
+
+        try {
+          const r = JSON.parse(data);
+          if (r.statusCode === 401)
+            resolve({ status: "token_error", message: "Token 已过期" });
+          else
+            resolve({
+              status: "info",
+              message: `🌸 领花：${r.message || "已领取"}`,
+            });
+        } catch {
+          resolve({ status: "info", message: "👍 小红花已领取" });
+        }
+      }
+    );
   });
 }
 
-// ----------------- 主逻辑 -----------------
+/* ========= 主流程 ========= */
 (async () => {
-  console.log(`[运行模式] ${isSilent ? "静默运行 (拦截正常通知)" : "普通运行 (展示通知)"}`);
-
   if (!token) {
-    $.notify("❌ 声荐任务失败", "未找到令牌", "请先运行“声荐获取令牌”脚本。");
+    $.notify("❌ 声荐任务失败", "未找到 Token", "请先打开声荐小程序获取令牌");
     return $.done();
   }
 
-  const [signResult, flowerResult] = await Promise.all([signIn(), claimFlower()]);
+  const [sign, flower] = await Promise.all([signIn(), claimFlower()]);
 
-  // Token过期始终通知
-  if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
-    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新打开小程序获取令牌。");
+  if (sign.status === "token_error" || flower.status === "token_error") {
+    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新打开小程序获取");
     return $.done();
   }
 
-  const lines = [];
-  if (signResult.message) lines.push(signResult.message);
-  if (flowerResult.message) lines.push(flowerResult.message);
-  const body = lines.join("\n");
+  const msg = [sign.message, flower.message].filter(Boolean).join("\n");
 
   if (isSilent) {
-    console.log(`[静默拦截通知]:\n${body}`);
+    console.log(`[静默运行] 通知内容被拦截:\n${msg}`);
   } else {
-    $.notify("声荐任务结果", "", body);
+    $.notify("声荐任务结果", "", msg);
   }
 
   $.done();
-})().catch((e) => { 
-  $.notify("💥 声荐脚本异常", "", String(e)); 
-  $.done(); 
+})().catch((e) => {
+  $.notify("💥 声荐脚本异常", "", String(e));
+  $.done();
 });
 
-function Env(n){this.name=n;this.notify=(t,s,b)=>{if(typeof $notification!="undefined")$notification.post(t,s,b);else if(typeof $notify!="undefined")$notify(t,s,b);else console.log(`${t}\n${s}\n${b}`)};this.read=k=>{if(typeof $persistentStore!="undefined")return $persistentStore.read(k);if(typeof $prefs!="undefined")return $prefs.valueForKey(k)};this.put=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.put(r,c);else if(typeof $http!="undefined")$http.put(r,c)};this.post=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.post(r,c);else if(typeof $http!="undefined")$http.post(r,c)};this.done=v=>{if(typeof $done!="undefined")$done(v)}}
+/* ========= Env ========= */
+function Env(n) {
+  this.name = n;
+  this.notify = (t, s, b) => {
+    if (typeof $notification !== "undefined")
+      $notification.post(t, s, b);
+    else if (typeof $notify !== "undefined") $notify(t, s, b);
+    else console.log(`${t}\n${s}\n${b}`);
+  };
+  this.read = (k) => {
+    if (typeof $persistentStore !== "undefined")
+      return $persistentStore.read(k);
+    if (typeof $prefs !== "undefined") return $prefs.valueForKey(k);
+  };
+  this.put = (r, c) => {
+    if (typeof $httpClient !== "undefined") $httpClient.put(r, c);
+    else if (typeof $http !== "undefined") $http.put(r, c);
+  };
+  this.post = (r, c) => {
+    if (typeof $httpClient !== "undefined") $httpClient.post(r, c);
+    else if (typeof $http !== "undefined") $http.post(r, c);
+  };
+  this.done = (v) => {
+    if (typeof $done !== "undefined") $done(v);
+  };
+}
