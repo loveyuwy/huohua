@@ -1,18 +1,21 @@
-/**
- * 修改说明：
- * 1. 增加了对 $argument 参数的解析
- * 2. 优化了通知逻辑：开启静默后，仅在 Token 失效时弹出通知，日常成功不再弹窗
- */
+/*
+声荐每日自动签到组合脚本
+更新说明：支持 Surge (#号开关) 和 Loon (UI开关) 的静默通知功能。
+*/
 
 const $ = new Env("声荐组合任务");
 const tokenKey = "shengjian_auth_token";
 let isScriptFinished = false;
 
-// --- 静默参数处理 ---
+// --- 增强型静默参数解析逻辑 ---
 let isSilent = false;
 if (typeof $argument !== "undefined" && $argument) {
-  // 匹配 silent=true 或直接传入的 true
-  if ($argument.indexOf("silent=true") !== -1 || $argument === "true") {
+  // 1. 兼容 Surge: 如果参数中包含 # 则视为开启静默
+  if ($argument.indexOf("#") !== -1) {
+    isSilent = true;
+  }
+  // 2. 兼容 Loon: 如果参数为 silent=true 或包含 true 则视为开启静默
+  else if ($argument.indexOf("true") !== -1) {
     isSilent = true;
   }
 }
@@ -86,7 +89,8 @@ function claimFlower() {
 // ----------------- 主逻辑 -----------------
 (async () => {
   console.log("--- 声荐组合任务开始执行 ---");
-  if (isSilent) console.log("检测到静默运行模式，日常结果将不推送通知");
+  console.log(`[参数检测] $argument: ${typeof $argument !== "undefined" ? $argument : "无"}`);
+  console.log(`[运行模式] ${isSilent ? "静默模式 (仅重要错误通知)" : "普通模式 (始终通知)"}`);
 
   if (!token) {
     $.notify("❌ 声荐任务失败", "未找到令牌", "请先运行“声荐获取令牌”脚本。");
@@ -98,9 +102,9 @@ function claimFlower() {
   console.log("--- 执行结果 ---");
   console.log(JSON.stringify([signResult, flowerResult], null, 2));
 
-  // 严重认证错误无论是否静默都通知
+  // 关键错误处理：Token失效时，无论是否静默都必须通知用户
   if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
-    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取令牌后再执行。");
+    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新打开小程序获取令牌。");
     isScriptFinished = true;
     return $.done();
   }
@@ -119,11 +123,11 @@ function claimFlower() {
 
   const body = lines.join("\n");
 
-  // 判断是否推送系统通知
-  if (!isSilent) {
-    $.notify(title, "", body);
+  // 通知逻辑
+  if (isSilent) {
+    console.log(`[静默跳过通知] ${title}\n${body}`);
   } else {
-    console.log(`[静默跳过通知] ${title}: ${body.replace(/\n/g, ' ')}`);
+    $.notify(title, "", body);
   }
 
   console.log("--- 声荐组合任务结束 ---");
@@ -138,7 +142,6 @@ function claimFlower() {
 // ----------------- Env 兼容层 -----------------
 function Env(name) {
   this.name = name;
-  this.log = (...a) => console.log(...a);
   this.notify = (t, s, b) => {
     if (typeof $notification !== "undefined") $notification.post(t, s, b);
     else if (typeof $notify !== "undefined") $notify(t, s, b);
