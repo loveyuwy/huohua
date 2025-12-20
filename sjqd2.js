@@ -1,15 +1,19 @@
+/*
+声荐每日自动签到组合脚本 - 兼容版
+*/
+
 const $ = new Env("声荐组合任务");
 const tokenKey = "shengjian_auth_token";
 let isScriptFinished = false;
 
-// --- 最终加固版静默参数解析 ---
+// --- 终极兼容解析逻辑 ---
 let isSilent = false;
 if (typeof $argument !== "undefined" && $argument) {
-  // 打印日志以便排查：在 Surge 日志里看这一行输出什么
-  console.log(`[参数检查] 原始参数内容: ${$argument}`);
-  
   const argStr = String($argument).toLowerCase();
-  // 只要包含 true, 1, 或者 # 号中任意一个，即开启静默
+  // 打印日志方便调试，可以在 Loon 的日志里查看
+  console.log(`[参数检查] 传入参数为: ${argStr}`);
+  
+  // 只要参数中包含 true, 1, #, 或者 silent=true (Loon), 都会判定为静默
   if (argStr.includes("true") || argStr.includes("1") || argStr.includes("#")) {
     isSilent = true;
   }
@@ -18,7 +22,6 @@ if (typeof $argument !== "undefined" && $argument) {
 const rawToken = $.read(tokenKey);
 const token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
 
-// ... (commonHeaders, signIn, claimFlower 函数部分保持不变) ...
 const commonHeaders = {
   "Authorization": token,
   "Content-Type": "application/json",
@@ -26,6 +29,7 @@ const commonHeaders = {
   "Referer": "https://servicewechat.com/wxa25139b08fe6e2b6/23/page-frame.html"
 };
 
+// ----------------- Step 1: 签到 -----------------
 function signIn() {
   return new Promise((resolve) => {
     const req = { url: "https://xcx.myinyun.com:4438/napi/gift", headers: commonHeaders, body: "{}" };
@@ -47,6 +51,7 @@ function signIn() {
   });
 }
 
+// ----------------- Step 2: 领取小红花 -----------------
 function claimFlower() {
   return new Promise((resolve) => {
     const req = { url: "https://xcx.myinyun.com:4438/napi/flower/get", headers: commonHeaders, body: "{}" };
@@ -64,6 +69,8 @@ function claimFlower() {
 
 // ----------------- 主逻辑 -----------------
 (async () => {
+  console.log(`[运行模式] ${isSilent ? "静默运行 (拦截正常通知)" : "普通运行 (展示通知)"}`);
+
   if (!token) {
     $.notify("❌ 声荐任务失败", "未找到令牌", "请先运行“声荐获取令牌”脚本。");
     return $.done();
@@ -71,6 +78,7 @@ function claimFlower() {
 
   const [signResult, flowerResult] = await Promise.all([signIn(), claimFlower()]);
 
+  // Token过期始终通知
   if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
     $.notify("🛑 声荐认证失败", "Token 已过期", "请重新打开小程序获取令牌。");
     return $.done();
@@ -82,12 +90,15 @@ function claimFlower() {
   const body = lines.join("\n");
 
   if (isSilent) {
-    console.log(`[静默模式] 拦截通知内容:\n${body}`);
+    console.log(`[静默拦截通知]:\n${body}`);
   } else {
     $.notify("声荐任务结果", "", body);
   }
 
   $.done();
-})().catch((e) => { $.notify("💥 声荐脚本异常", "", String(e)); $.done(); });
+})().catch((e) => { 
+  $.notify("💥 声荐脚本异常", "", String(e)); 
+  $.done(); 
+});
 
 function Env(n){this.name=n;this.notify=(t,s,b)=>{if(typeof $notification!="undefined")$notification.post(t,s,b);else if(typeof $notify!="undefined")$notify(t,s,b);else console.log(`${t}\n${s}\n${b}`)};this.read=k=>{if(typeof $persistentStore!="undefined")return $persistentStore.read(k);if(typeof $prefs!="undefined")return $prefs.valueForKey(k)};this.put=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.put(r,c);else if(typeof $http!="undefined")$http.put(r,c)};this.post=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.post(r,c);else if(typeof $http!="undefined")$http.post(r,c)};this.done=v=>{if(typeof $done!="undefined")$done(v)}}
