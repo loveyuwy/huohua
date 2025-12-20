@@ -1,16 +1,13 @@
 const $ = new Env("声荐组合任务");
 const tokenKey = "shengjian_auth_token";
-let isScriptFinished = false;
 
-// --- 最终加固版静默参数解析 ---
+// --- 兼容性静默参数解析 ---
 let isSilent = false;
 if (typeof $argument !== "undefined" && $argument) {
-  // 打印日志以便排查：在 Surge 日志里看这一行输出什么
-  console.log(`[参数检查] 原始参数内容: ${$argument}`);
-  
   const argStr = String($argument).toLowerCase();
-  // 只要包含 true, 1, 或者 # 号中任意一个，即开启静默
-  if (argStr.includes("true") || argStr.includes("1") || argStr.includes("#")) {
+  // 识别 Surge 的 # 或 1，以及 Loon 的 true 字符串
+  // 显式排除 false 以防 Loon 传递 "false" 字符串时被误判
+  if (argStr.includes("#") || argStr.includes("1") || (argStr.includes("true") && !argStr.includes("false"))) {
     isSilent = true;
   }
 }
@@ -18,7 +15,6 @@ if (typeof $argument !== "undefined" && $argument) {
 const rawToken = $.read(tokenKey);
 const token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
 
-// ... (commonHeaders, signIn, claimFlower 函数部分保持不变) ...
 const commonHeaders = {
   "Authorization": token,
   "Content-Type": "application/json",
@@ -62,7 +58,6 @@ function claimFlower() {
   });
 }
 
-// ----------------- 主逻辑 -----------------
 (async () => {
   if (!token) {
     $.notify("❌ 声荐任务失败", "未找到令牌", "请先运行“声荐获取令牌”脚本。");
@@ -82,13 +77,38 @@ function claimFlower() {
   const body = lines.join("\n");
 
   if (isSilent) {
-    console.log(`[静默模式] 拦截通知内容:\n${body}`);
+    console.log(`[静默模式] 签到任务完成，拦截通知内容:\n${body}`);
   } else {
     $.notify("声荐任务结果", "", body);
   }
 
   $.done();
-})().catch((e) => { $.notify("💥 声荐脚本异常", "", String(e)); $.done(); });
+})().catch((e) => { 
+  $.notify("💥 声荐脚本异常", "", String(e)); 
+  $.done(); 
+});
 
-function Env(n){this.name=n;this.notify=(t,s,b)=>{if(typeof $notification!="undefined")$notification.post(t,s,b);else if(typeof $notify!="undefined")$notify(t,s,b);else console.log(`${t}\n${s}\n${b}`)};this.read=k=>{if(typeof $persistentStore!="undefined")return $persistentStore.read(k);if(typeof $prefs!="undefined")return $prefs.valueForKey(k)};this.put=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.put(r,c);else if(typeof $http!="undefined")$http.put(r,c)};this.post=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.post(r,c);else if(typeof $http!="undefined")$http.post(r,c)};this.done=v=>{if(typeof $done!="undefined")$done(v)}}
-surge的静默通知开关有效果，没问题。但loon的静默通知开关打开和关闭都会通知，什么问题？帮我改一下
+// --- Env 环境适配器 ---
+function Env(n){
+  this.name=n;
+  this.notify=(t,s,b)=>{
+    if(typeof $notification!="undefined")$notification.post(t,s,b);
+    else if(typeof $notify!="undefined")$notify(t,s,b);
+    else console.log(`${t}\n${s}\n${b}`);
+  };
+  this.read=k=>{
+    if(typeof $persistentStore!="undefined")return $persistentStore.read(k);
+    if(typeof $prefs!="undefined")return $prefs.valueForKey(k);
+  };
+  this.put=(r,c)=>{
+    if(typeof $httpClient!="undefined")$httpClient.put(r,c);
+    else if(typeof $http!="undefined")$http.put(r,c);
+  };
+  this.post=(r,c)=>{
+    if(typeof $httpClient!="undefined")$httpClient.post(r,c);
+    else if(typeof $http!="undefined")$http.post(r,c);
+  };
+  this.done=v=>{
+    if(typeof $done!="undefined")$done(v);
+  }
+}
