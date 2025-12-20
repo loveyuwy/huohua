@@ -1,6 +1,6 @@
 /*
 声荐每日任务 - 组合脚本 (签到 + 领小红花)
-支持 Loon & Surge 静默参数控制
+修正版：兼容 Loon (true/false 字符串) 与 Surge (# 字符)
 */
 
 const $ = new Env("声荐组合任务");
@@ -77,9 +77,17 @@ function claimFlower() {
 (async () => {
   console.log("--- 声荐组合任务开始执行 ---");
 
-  // 读取静默参数：兼容 Loon 的 true/false 和 Surge 的 "#" 字符串
-  const arg = (typeof $argument !== "undefined" && $argument) ? $argument : "";
-  const isSilent = (arg === true || arg === "true" || arg === "#");
+  // --- 修正后的参数读取逻辑 ---
+  let isSilent = false;
+  if (typeof $argument !== "undefined" && $argument) {
+    // 打印参数以便调试
+    console.log("检测到参数内容: " + $argument);
+    // 只要参数包含 "true" (Loon开关开启) 或者 "#" (Surge填了#)，就进入静默模式
+    if ($argument.toString().indexOf("true") !== -1 || $argument.toString().indexOf("#") !== -1) {
+      isSilent = true;
+    }
+  }
+  console.log("当前静默状态: " + (isSilent ? "开启" : "关闭"));
 
   if (!token) {
     $.notify("❌ 声荐任务失败", "未找到令牌", "请先运行“声荐获取令牌”脚本。");
@@ -91,9 +99,9 @@ function claimFlower() {
   console.log("--- 执行结果 ---");
   console.log(JSON.stringify([signResult, flowerResult], null, 2));
 
-  // 认证失败是严重问题，始终通知，不进入静默逻辑
+  // 认证失败依然始终通知
   if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
-    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取令牌后再执行。");
+    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取令牌。");
     isScriptFinished = true;
     return $.done();
   }
@@ -112,9 +120,9 @@ function claimFlower() {
 
   const body = lines.join("\n");
 
-  // 判断是否静默：如果开启了静默且没有错误，则不推送
+  // 静默逻辑判断
   if (isSilent && !hasError) {
-    console.log(`[静默模式] 任务完成，跳过系统通知推送。内容:\n${body}`);
+    console.log(`[静默中] 跳过系统通知。内容:\n${body}`);
   } else {
     $.notify(title, "", body);
   }
