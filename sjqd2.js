@@ -1,30 +1,24 @@
 const $ = new Env("声荐组合任务");
 const tokenKey = "shengjian_auth_token";
 
-/* ========= 静默参数解析（Surge / Loon 通用） ========= */
+/* ========= 静默参数解析（终极稳定版） ========= */
 let isSilent = false;
 
 if (typeof $argument !== "undefined") {
-  // Loon：switch → boolean
-  if ($argument === true) {
-    isSilent = true;
-  }
+  const raw = String($argument).trim().toLowerCase();
 
-  // Surge / Loon：字符串
-  if (typeof $argument === "string") {
-    const argStr = $argument.trim().toLowerCase();
-    if (
-      argStr === "true" ||
-      argStr === "1" ||
-      argStr === "#" ||
-      argStr === "silent"
-    ) {
-      isSilent = true;
-    }
+  if (
+    raw === "1" ||
+    raw === "true" ||
+    raw === "#" ||
+    raw === "silent"
+  ) {
+    isSilent = true;
   }
 }
 
-console.log(`[静默模式] isSilent=${isSilent}, raw=${String($argument)}`);
+console.log(`[参数检查] 传入参数为: ${String($argument)}`);
+console.log(`[运行模式] ${isSilent ? "静默运行" : "普通运行 (展示通知)"}`);
 
 /* ========= Token ========= */
 const rawToken = $.read(tokenKey);
@@ -129,7 +123,7 @@ function claimFlower() {
   const msg = [sign.message, flower.message].filter(Boolean).join("\n");
 
   if (isSilent) {
-    console.log(`[静默运行] 通知内容被拦截:\n${msg}`);
+    console.log(`[静默运行] 通知已抑制:\n${msg}`);
   } else {
     $.notify("声荐任务结果", "", msg);
   }
