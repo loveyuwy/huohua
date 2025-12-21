@@ -1,3 +1,8 @@
+/*
+声荐每日自动签到
+脚本说明：支持自定义静默运行。
+*/
+
 const $ = new Env("声荐自动签到");
 const tokenKey = "shengjian_auth_token";
 
@@ -6,13 +11,15 @@ if (typeof $argument !== "undefined" && $argument) {
   const argStr = String($argument).toLowerCase();
   console.log(`[参数检查] 当前参数内容: ${argStr}`);
   
+  // 1. 正常逻辑：只有明确包含 true, # 或 1 时才静默
   if (argStr.includes("true") || argStr.includes("#") || argStr.includes("1")) {
     isSilent = true;
   }
   
+  // 2. 容错处理：如果 Loon 没能正确替换变量（显示为 {silent_switch}），则视为不静默，确保通知触达
   if (argStr.includes("{silent_switch}")) {
-    console.log("⚠️ 检测到 Loon 变量替换 Bug，已自动开启静默模式防止弹窗。");
-    isSilent = true; 
+    console.log("⚠️ 检测到 Loon 变量未正确替换，默认关闭静默模式以显示通知。");
+    isSilent = false; 
   }
 }
 
@@ -42,7 +49,7 @@ const commonHeaders = {
   const body = [signResult.message, flowerResult.message].filter(Boolean).join("\n");
 
   if (isSilent) {
-    console.log(`[静默生效] 已拦截以下通知内容:\n${body}`);
+    console.log(`[静默运行] 已拦截以下通知内容:\n${body}`);
   } else {
     $.notify("声荐任务结果", "", body);
   }
