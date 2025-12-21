@@ -1,20 +1,18 @@
 const $ = new Env("声荐自动签到");
 const tokenKey = "shengjian_auth_token";
 
-/**
- * --- 参数逻辑适配 ---
- * 逻辑：只要参数里【不包含】true，就一律发送通知。
- * 这样即便 Loon 出现变量替换 Bug（显示 {silent_switch}），也会因为不包含 "true" 而正常通知。
- */
 let isSilent = false;
 if (typeof $argument !== "undefined" && $argument) {
   const argStr = String($argument).toLowerCase();
-  if (argStr.includes("true")) {
+  console.log(`[参数检查] 当前参数内容: ${argStr}`);
+  
+  if (argStr.includes("true") || argStr.includes("#") || argStr.includes("1")) {
     isSilent = true;
-    console.log("[配置] 静默模式已开启，将拦截成功通知。");
-  } else {
-    isSilent = false;
-    console.log("[配置] 静默模式关闭或参数无效，正常发送通知。");
+  }
+  
+  if (argStr.includes("{silent_switch}")) {
+    console.log("⚠️ 检测到 Loon 变量替换 Bug，已自动开启静默模式防止弹窗。");
+    isSilent = true; 
   }
 }
 
@@ -44,7 +42,7 @@ const commonHeaders = {
   const body = [signResult.message, flowerResult.message].filter(Boolean).join("\n");
 
   if (isSilent) {
-    console.log(`[静默运行] 任务完成，通知已拦截:\n${body}`);
+    console.log(`[静默生效] 已拦截以下通知内容:\n${body}`);
   } else {
     $.notify("声荐任务结果", "", body);
   }
