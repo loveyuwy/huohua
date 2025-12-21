@@ -1,18 +1,16 @@
-// 使用 var 替代 const 解决重复声明异常
-var $ = new Env("声荐终极修复版");
+// 使用 var 彻底解决 Loon 脚本环境冲突
+var $ = new Env("声荐最终版");
 var tokenKey = "shengjian_auth_token";
 
-// --- 静默逻辑判定 ---
+// --- 纯粹的参数读取逻辑 ---
 let isSilent = false;
 if (typeof $argument !== "undefined" && $argument) {
-  const argStr = String($argument).toLowerCase();
-  if (argStr.includes("true") || argStr.includes("#") || argStr.includes("1")) {
+  var argStr = String($argument).toLowerCase();
+  // 打印到日志，方便你看到你填写的参数是否生效
+  console.log(`[参数检查] 当前接收到的手动参数: ${argStr}`);
+  
+  if (argStr.includes("true") || argStr === "1") {
     isSilent = true;
-  }
-  // 针对 Loon 变量失效的补丁
-  if (argStr.includes("{silent_switch}")) {
-    isSilent = false; // 失效时默认显示通知，方便调试
-    console.log("⚠️ Loon 变量失效，已自动切换为：通知模式");
   }
 }
 
@@ -28,28 +26,28 @@ var commonHeaders = {
 
 (async () => {
   if (!token) {
-    if (!isSilent) $.notify("❌ 声荐失败", "未找到Token", "请打开小程序获取。");
+    if (!isSilent) $.notify("❌ 声荐失败", "未找到Token", "请获取。");
     return $.done();
   }
 
   const [signResult, flowerResult] = await Promise.all([signIn(), claimFlower()]);
 
+  // Token 失效强制提醒
   if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
-    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取令牌。");
+    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取。");
     return $.done();
   }
 
-  const lines = [signResult.message, flowerResult.message].filter(Boolean);
-  const body = lines.join("\n");
+  const body = [signResult.message, flowerResult.message].filter(Boolean).join("\n");
 
   if (isSilent) {
-    console.log(`[静默生效] 已拦截内容:\n${body}`);
+    console.log(`[静默生效] 已拦截通知:\n${body}`);
   } else {
-    $.notify("声荐任务结果", "", body);
+    $.notify("声荐结果", "", body);
   }
 })().catch((e) => {
-  console.log(`[脚本异常] ${e}`);
-  if (!isSilent) $.notify("💥 声荐脚本崩溃", "", String(e));
+  console.log(`[脚本崩溃] ${e}`);
+  if (!isSilent) $.notify("💥 声荐脚本异常", "", String(e));
 }).finally(() => $.done());
 
 function signIn() {
@@ -62,7 +60,7 @@ function signIn() {
         const result = JSON.parse(data || "{}");
         if (result.msg === "ok") resolve({ status: 'success', message: `✅ 签到: ${result.data?.prizeName || "成功"}` });
         else if (String(result.msg || "").includes("已经")) resolve({ status: 'info', message: '📋 签到: 已签到' });
-        else resolve({ status: 'error', message: `🚫 签到: ${result.msg || "未知"}` });
+        else resolve({ status: 'error', message: `🚫 签到: ${result.msg || "错误"}` });
       } catch (e) { resolve({ status: 'error', message: '🤯 解析失败' }); }
     });
   });
@@ -82,5 +80,4 @@ function claimFlower() {
   });
 }
 
-// --- Env 适配 (已将内部 const 改为 var) ---
 function Env(n){this.name=n;this.notify=(t,s,b)=>{if(typeof $notification!="undefined")$notification.post(t,s,b);else if(typeof $notify!="undefined")$notify(t,s,b);else console.log(`${t}\n${s}\n${b}`)};this.read=k=>{if(typeof $persistentStore!="undefined")return $persistentStore.read(k);if(typeof $prefs!="undefined")return $prefs.valueForKey(k)};this.put=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.put(r,c)};this.post=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.post(r,c)};this.done=v=>{if(typeof $done!="undefined")$done(v)}}
