@@ -3,7 +3,7 @@
 #!author=〈ザㄩメ火华
 #!category=每日提醒
 #!arguments=CRON定时设置:"0 10,11,12 * * *", 声荐自动抓取开关:"", 静默运行:""
-#!arguments-desc=CRON定时设置: 签到脚本的 CRON 表达式; 声荐自动抓取开关: 填写 # 即可禁用Token捕获; 静默运行: 填写 # 开启静默(不弹通知)，清空则正常通知。
+#!arguments-desc=CRON定时设置: 签到脚本的 CRON 表达式\n声荐自动抓取开关: 填写 # 即可禁用Token捕获\n静默运行: 填写 # 开启静默(不弹通知)，清空则正常通知。
 
 [Script]
 # Token 抓取脚本
