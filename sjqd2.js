@@ -1,18 +1,12 @@
-// 使用 var 彻底解决 Loon 脚本环境冲突
-var $ = new Env("声荐最终版");
+// 使用 var 彻底解决变量冲突报错
+var $ = new Env("声荐稳定版");
 var tokenKey = "shengjian_auth_token";
 
-// --- 纯粹的参数读取逻辑 ---
-let isSilent = false;
-if (typeof $argument !== "undefined" && $argument) {
-  var argStr = String($argument).toLowerCase();
-  // 打印到日志，方便你看到你填写的参数是否生效
-  console.log(`[参数检查] 当前接收到的手动参数: ${argStr}`);
-  
-  if (argStr.includes("true") || argStr === "1") {
-    isSilent = true;
-  }
-}
+// --- 【手动设置区】 ---
+// true  = 开启静默（不发通知）
+// false = 关闭静默（正常通知）
+var manualSilent = true; 
+// ----------------------
 
 var rawToken = $.read(tokenKey);
 var token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
@@ -26,13 +20,13 @@ var commonHeaders = {
 
 (async () => {
   if (!token) {
-    if (!isSilent) $.notify("❌ 声荐失败", "未找到Token", "请获取。");
+    if (!manualSilent) $.notify("❌ 声荐失败", "未找到Token", "请获取。");
     return $.done();
   }
 
   const [signResult, flowerResult] = await Promise.all([signIn(), claimFlower()]);
 
-  // Token 失效强制提醒
+  // Token 失效关系到脚本存续，建议保持弹窗
   if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
     $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取。");
     return $.done();
@@ -40,14 +34,14 @@ var commonHeaders = {
 
   const body = [signResult.message, flowerResult.message].filter(Boolean).join("\n");
 
-  if (isSilent) {
-    console.log(`[静默生效] 已拦截通知:\n${body}`);
+  if (manualSilent) {
+    console.log(`[静默成功] 任务已完成，拦截通知:\n${body}`);
   } else {
     $.notify("声荐结果", "", body);
   }
 })().catch((e) => {
-  console.log(`[脚本崩溃] ${e}`);
-  if (!isSilent) $.notify("💥 声荐脚本异常", "", String(e));
+  console.log(`[异常] ${e}`);
+  if (!manualSilent) $.notify("💥 声荐异常", "", String(e));
 }).finally(() => $.done());
 
 function signIn() {
