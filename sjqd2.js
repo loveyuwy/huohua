@@ -1,1 +1,84 @@
-function a0_0x1953(_0x566798,_0x3d1637){const _0x312c3d=a0_0x2f75();return a0_0x1953=function(_0x4a7d9f,_0x5bfeb7){_0x4a7d9f=_0x4a7d9f-0xce;let _0x42ad55=_0x312c3d[_0x4a7d9f];return _0x42ad55;},a0_0x1953(_0x566798,_0x3d1637);}function a0_0x2f75(){const _0x14f499=['🛑\x20声荐认证失败','5AAAAAA','1AAAAAA','7AGGGGG','32088AAAAAA','96264AHHHHH','3AAAAAA','128352GGGGGG','64176AAAAAA','9GGGGGG','160440GGGGGG','11GGGGGG','192528GGGGGG','13GGGGGG','6443122GGGGGG','Token\x20已过期','声荐自动签到','shengjian_auth_token','undefined','toLowerCase','log','[参数检查]\x20当前参数内容:\x20','includes','true','{silent_switch}','⚠️\x20检测到\x20Loon\x20变量替换\x20Bug，已自动开启静默模式防止弹窗。','read','startsWith','Bearer\x20','application/json','请重新获取令牌。','Mozilla/5.0\x20(iPhone;\x20CPU\x20iPhone\x20OS\x2016_2\x20like\x20Mac\x20OS\x20X)\x20AppleWebKit/605.1.15\x20(KHTML,\x20like\x20Gecko)\x20Mobile/15E148\x20MicroMessenger/8.0.64','https://servicewechat.com/wxa25139b08fe6e2b6/23/page-frame.html','notify','❌\x20声荐失败','未找到Token','请打开小程序获取。','done','all','status','token_error'];a0_0x2f75=function(){return _0x14f499;};return a0_0x2f75();}const a0_0x15fab7=a0_0x1953;(function(_0x3c4d29,_0x559e8b){const _0x2f4c19=a0_0x1953,_0x4a7d9f=_0x3c4d29();while(!![]){try{const _0x566798=parseInt(_0x2f4c19(0xcf))/0x1*(parseInt(_0x2f4c19(0xd1))/0x2)+parseInt(_0x2f4c19(0xd3))/0x3*(parseInt(_0x2f4c19(0xd5))/0x4)+parseInt(_0x2f4c19(0xce))/0x5*(parseInt(_0x2f4c19(0xd2))/0x6)+parseInt(_0x2f4c19(0xd0))/0x7*(parseInt(_0x2f4c19(0xd4))/0x8)+parseInt(_0x2f4c19(0xd6))/0x9*(parseInt(_0x2f4c19(0xd7))/0xa)+parseInt(_0x2f4c19(0xd8))/0xb*(parseInt(_0x2f4c19(0xd9))/0xc)+parseInt(_0x2f4c19(0xda))/0xd*(parseInt(_0x2f4c19(0xdb))/0xe);if(_0x566798===_0x559e8b)break;else _0x4a7d9f['push'](_0x4a7d9f['shift']());}catch(_0x33c813){_0x4a7d9f['push'](_0x4a7d9f['shift']());}}}(a0_0x2f75,0x87dc7));const $=new Env(a0_0x15fab7(0xdd)),tokenKey=a0_0x15fab7(0xde);let isSilent=![];if(typeof $argument!==a0_0x15fab7(0xdf)&&$argument){const argStr=String($argument)[a0_0x15fab7(0xe0)]();console[a0_0x15fab7(0xe1)](a0_0x15fab7(0xe2)+argStr),(argStr[a0_0x15fab7(0xe3)](a0_0x15fab7(0xe4))||argStr[a0_0x15fab7(0xe3)]('#')||argStr[a0_0x15fab7(0xe3)]('1'))&&(isSilent=!![]),argStr[a0_0x15fab7(0xe3)](a0_0x15fab7(0xe5))&&(console[a0_0x15fab7(0xe1)](a0_0x15fab7(0xe6)),isSilent=!![]);}const rawToken=$[a0_0x15fab7(0xe7)](tokenKey),token=rawToken?rawToken[a0_0x15fab7(0xe8)](a0_0x15fab7(0xe9))?rawToken:a0_0x15fab7(0xe9)+rawToken:null,commonHeaders={'Authorization':token,'Content-Type':a0_0x15fab7(0xea),'User-Agent':a0_0x15fab7(0xec),'Referer':a0_0x15fab7(0xed)};(async()=>{const _0x106398=a0_0x15fab7;if(!token){if(!isSilent)$[_0x106398(0xee)](_0x106398(0xef),_0x106398(0xf0),_0x106398(0xf1));return $[_0x106398(0xf2)]();}const [_0x1953d2,_0x24820f]=await Promise[_0x106398(0xf3)]([signIn(),claimFlower()]);if(_0x1953d2[_0x106398(0xf4)]===_0x106398(0xf5)||_0x24820f[_0x106398(0xf4)]===_0x106398(0xf5))return $[_0x106398(0xee)](_0x106398(0xf6),_0x106398(0xdc),_0x106398(0xeb)),$[_0x106398(0xf2)]();const _0xe2595d=[_0x1953d2['message'],_0x24820f['message']]['filter'](Boolean)['join']('\x0a');isSilent?console['log']('[静默生效]\x20已拦截以下通知内容:\x0a'+_0xe2595d):$['notify']('声荐任务结果','',_0xe2595d);})()['catch'](_0x2f758f=>{console['log']('[脚本异常]\x20'+_0x2f758f);if(!isSilent)$['notify']('💥\x20声荐脚本崩溃','',String(_0x2f758f));})['finally'](()=>$['done']());function signIn(){return new Promise(_0x88e776=>{$['put']({'url':'https://xcx.myinyun.com:4438/napi/gift','headers':commonHeaders,'body':'{}'},(_0x1eeaf1,_0x274d9e,_0x1c1f61)=>{if(_0x1eeaf1)return _0x88e776({'status':'error','message':'📡\x20签到:\x20网络错误'});const _0x5c2e83=_0x274d9e?_0x274d9e['status']||_0x274d9e['statusCode']:0x0;if(_0x5c2e83===0x191)return _0x88e776({'status':'token_error'});try{const _0xb5a06a=JSON['parse'](_0x1c1f61||'{}');if(_0xb5a06a['msg']==='ok')_0x88e776({'status':'success','message':'✅\x20签到:\x20'+(_0xb5a06a['data']?.['prizeName']||'成功')});else{if(String(_0xb5a06a['msg']||'')['includes']('已经'))_0x88e776({'status':'info','message':'📋\x20签到:\x20已签到'});else _0x88e776({'status':'error','message':'🚫\x20签到:\x20'+(_0xb5a06a['msg']||'未知')});}}catch(_0x21b680){_0x88e776({'status':'error','message':'🤯\x20解析失败'});}});});}function claimFlower(){return new Promise(_0x10dc78=>{$['post']({'url':'https://xcx.myinyun.com:4438/napi/flower/get','headers':commonHeaders,'body':'{}'},(_0x2732fc,_0x476d44,_0x312972)=>{if(_0x2732fc||!_0x312972)return _0x10dc78({'status':'info','message':'🌸\x20领花:\x20正常'});if(_0x312972==='true')return _0x10dc78({'status':'success','message':'🌺\x20已领小红花'});try{const _0x1060cd=JSON['parse'](_0x312972);if(_0x1060cd['statusCode']===0x191)_0x10dc78({'status':'token_error'});else _0x10dc78({'status':'info','message':'🌸\x20领花:\x20'+(_0x1060cd['message']||'已领')});}catch(_0x1dcb01){_0x10dc78({'status':'info','message':'👍\x20领花:\x20记录正常'});}});});}function Env(_0x4799f7){const _0x1dce2b=a0_0x15fab7;this['name']=_0x4799f7,this[_0x1dce2b(0xee)]=(_0x312c3d,_0x3d1637,_0x566ac3)=>{const _0x33f7a3=_0x1dce2b;if(typeof $notification!=_0x33f7a3(0xdf))$notification['post'](_0x312c3d,_0x3d1637,_0x566ac3);else{if(typeof $notify!='undefined')$notify(_0x312c3d,_0x3d1637,_0x566ac3);else console['log'](_0x312c3d+'\x0a'+_0x3d1637+'\x0a'+_0x566ac3);}},this['read']=_0x3d136c=>{if(typeof $persistentStore!='undefined')return $persistentStore['read'](_0x3d136c);if(typeof $prefs!='undefined')return $prefs['valueForKey'](_0x3d136c);},this['put']=(_0x42aa8a,_0x35f488)=>{if(typeof $httpClient!='undefined')$httpClient['put'](_0x42aa8a,_0x35f488);},this['post']=(_0x4f48b5,_0x35f753)=>{if(typeof $httpClient!='undefined')$httpClient['post'](_0x4f48b5,_0x35f753);},this['done']=_0x306035=>{if(typeof $done!='undefined')$done(_0x306035);};}
+const $ = new Env("声荐自动签到");
+const tokenKey = "shengjian_auth_token";
+
+let isSilent = false;
+if (typeof $argument !== "undefined" && $argument) {
+  const argStr = String($argument).toLowerCase();
+  console.log(`[参数检查] 当前参数内容: ${argStr}`);
+  
+  if (argStr.includes("true") || argStr.includes("#") || argStr.includes("1")) {
+    isSilent = true;
+  }
+  
+  if (argStr.includes("{silent_switch}")) {
+    console.log("⚠️ 检测到 Loon 变量替换 Bug，已自动开启静默模式防止弹窗。");
+    isSilent = true; 
+  }
+}
+
+const rawToken = $.read(tokenKey);
+const token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
+
+const commonHeaders = {
+  "Authorization": token,
+  "Content-Type": "application/json",
+  "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.64",
+  "Referer": "https://servicewechat.com/wxa25139b08fe6e2b6/23/page-frame.html"
+};
+
+(async () => {
+  if (!token) {
+    if (!isSilent) $.notify("❌ 声荐失败", "未找到Token", "请打开小程序获取。");
+    return $.done();
+  }
+
+  const [signResult, flowerResult] = await Promise.all([signIn(), claimFlower()]);
+
+  if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
+    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取令牌。");
+    return $.done();
+  }
+
+  const body = [signResult.message, flowerResult.message].filter(Boolean).join("\n");
+
+  if (isSilent) {
+    console.log(`[静默生效] 已拦截以下通知内容:\n${body}`);
+  } else {
+    $.notify("声荐任务结果", "", body);
+  }
+})().catch((e) => {
+  console.log(`[脚本异常] ${e}`);
+  if (!isSilent) $.notify("💥 声荐脚本崩溃", "", String(e));
+}).finally(() => $.done());
+
+function signIn() {
+  return new Promise((resolve) => {
+    $.put({ url: "https://xcx.myinyun.com:4438/napi/gift", headers: commonHeaders, body: "{}" }, (err, res, data) => {
+      if (err) return resolve({ status: 'error', message: '📡 签到: 网络错误' });
+      const code = res ? (res.status || res.statusCode) : 0;
+      if (code === 401) return resolve({ status: 'token_error' });
+      try {
+        const result = JSON.parse(data || "{}");
+        if (result.msg === "ok") resolve({ status: 'success', message: `✅ 签到: ${result.data?.prizeName || "成功"}` });
+        else if (String(result.msg || "").includes("已经")) resolve({ status: 'info', message: '📋 签到: 已签到' });
+        else resolve({ status: 'error', message: `🚫 签到: ${result.msg || "未知"}` });
+      } catch (e) { resolve({ status: 'error', message: '🤯 解析失败' }); }
+    });
+  });
+}
+
+function claimFlower() {
+  return new Promise((resolve) => {
+    $.post({ url: "https://xcx.myinyun.com:4438/napi/flower/get", headers: commonHeaders, body: "{}" }, (err, res, data) => {
+      if (err || !data) return resolve({ status: 'info', message: '🌸 领花: 正常' });
+      if (data === "true") return resolve({ status: 'success', message: '🌺 已领小红花' });
+      try {
+        const obj = JSON.parse(data);
+        if (obj.statusCode === 401) resolve({ status: 'token_error' });
+        else resolve({ status: 'info', message: `🌸 领花: ${obj.message || '已领'}` });
+      } catch (e) { resolve({ status: 'info', message: '👍 领花: 记录正常' }); }
+    });
+  });
+}
+
+function Env(n){this.name=n;this.notify=(t,s,b)=>{if(typeof $notification!="undefined")$notification.post(t,s,b);else if(typeof $notify!="undefined")$notify(t,s,b);else console.log(`${t}\n${s}\n${b}`)};this.read=k=>{if(typeof $persistentStore!="undefined")return $persistentStore.read(k);if(typeof $prefs!="undefined")return $prefs.valueForKey(k)};this.put=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.put(r,c)};this.post=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.post(r,c)};this.done=v=>{if(typeof $done!="undefined")$done(v)}}
