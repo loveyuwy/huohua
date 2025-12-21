@@ -1,17 +1,25 @@
-// 使用 var 彻底解决变量冲突报错
-var $ = new Env("声荐稳定版");
-var tokenKey = "shengjian_auth_token";
+const $ = new Env("声荐自动签到");
+const tokenKey = "shengjian_auth_token";
 
-// --- 【手动设置区】 ---
-// true  = 开启静默（不发通知）
-// false = 关闭静默（正常通知）
-var manualSilent = true; 
-// ----------------------
+let isSilent = false;
+if (typeof $argument !== "undefined" && $argument) {
+  const argStr = String($argument).toLowerCase();
+  console.log(`[参数检查] 当前参数内容: ${argStr}`);
+  
+  if (argStr.includes("true") || argStr.includes("#") || argStr.includes("1")) {
+    isSilent = true;
+  }
+  
+  if (argStr.includes("{silent_switch}")) {
+    console.log("⚠️ 检测到 Loon 变量替换 Bug，已自动开启静默模式防止弹窗。");
+    isSilent = true; 
+  }
+}
 
-var rawToken = $.read(tokenKey);
-var token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
+const rawToken = $.read(tokenKey);
+const token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
 
-var commonHeaders = {
+const commonHeaders = {
   "Authorization": token,
   "Content-Type": "application/json",
   "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.64",
@@ -20,28 +28,27 @@ var commonHeaders = {
 
 (async () => {
   if (!token) {
-    if (!manualSilent) $.notify("❌ 声荐失败", "未找到Token", "请获取。");
+    if (!isSilent) $.notify("❌ 声荐失败", "未找到Token", "请打开小程序获取。");
     return $.done();
   }
 
   const [signResult, flowerResult] = await Promise.all([signIn(), claimFlower()]);
 
-  // Token 失效关系到脚本存续，建议保持弹窗
   if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
-    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取。");
+    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取令牌。");
     return $.done();
   }
 
   const body = [signResult.message, flowerResult.message].filter(Boolean).join("\n");
 
-  if (manualSilent) {
-    console.log(`[静默成功] 任务已完成，拦截通知:\n${body}`);
+  if (isSilent) {
+    console.log(`[静默生效] 已拦截以下通知内容:\n${body}`);
   } else {
-    $.notify("声荐结果", "", body);
+    $.notify("声荐任务结果", "", body);
   }
 })().catch((e) => {
-  console.log(`[异常] ${e}`);
-  if (!manualSilent) $.notify("💥 声荐异常", "", String(e));
+  console.log(`[脚本异常] ${e}`);
+  if (!isSilent) $.notify("💥 声荐脚本崩溃", "", String(e));
 }).finally(() => $.done());
 
 function signIn() {
@@ -54,7 +61,7 @@ function signIn() {
         const result = JSON.parse(data || "{}");
         if (result.msg === "ok") resolve({ status: 'success', message: `✅ 签到: ${result.data?.prizeName || "成功"}` });
         else if (String(result.msg || "").includes("已经")) resolve({ status: 'info', message: '📋 签到: 已签到' });
-        else resolve({ status: 'error', message: `🚫 签到: ${result.msg || "错误"}` });
+        else resolve({ status: 'error', message: `🚫 签到: ${result.msg || "未知"}` });
       } catch (e) { resolve({ status: 'error', message: '🤯 解析失败' }); }
     });
   });
@@ -69,7 +76,7 @@ function claimFlower() {
         const obj = JSON.parse(data);
         if (obj.statusCode === 401) resolve({ status: 'token_error' });
         else resolve({ status: 'info', message: `🌸 领花: ${obj.message || '已领'}` });
-      } catch (e) { resolve({ status: 'info', message: '👍 领花: 正常' }); }
+      } catch (e) { resolve({ status: 'info', message: '👍 领花: 记录正常' }); }
     });
   });
 }
