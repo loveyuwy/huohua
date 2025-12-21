@@ -1,30 +1,22 @@
 const $ = new Env("声荐自动签到");
 const tokenKey = "shengjian_auth_token";
 
-// --- 增强调试与逻辑部分 ---
+/**
+ * --- 参数逻辑适配 ---
+ * 逻辑：只要参数里【不包含】true，就一律发送通知。
+ * 这样即便 Loon 出现变量替换 Bug（显示 {silent_switch}），也会因为不包含 "true" 而正常通知。
+ */
 let isSilent = false;
-console.log(`[调试] 原始 $argument 类型: ${typeof $argument}`);
-
 if (typeof $argument !== "undefined" && $argument) {
   const argStr = String($argument).toLowerCase();
-  console.log(`[调试] 接收到的参数内容: "${argStr}"`);
-  
-  // 逻辑：只有明确为 true 时才静默
-  if (argStr.includes("true") || argStr === "1") {
+  if (argStr.includes("true")) {
     isSilent = true;
-    console.log("[状态] 确认开启静默模式。");
-  } else if (argStr.includes("{silent_switch}")) {
-    // 关键点：如果 Loon 没替换变量，我们强制认为它是 false (关闭静默)
-    isSilent = false;
-    console.log("[状态] 检测到 Loon 变量替换失效，已强制恢复通知。");
+    console.log("[配置] 静默模式已开启，将拦截成功通知。");
   } else {
     isSilent = false;
-    console.log("[状态] 参数为 false 或其他，正常显示通知。");
+    console.log("[配置] 静默模式关闭或参数无效，正常发送通知。");
   }
-} else {
-  console.log("[调试] 未检测到任何参数输入，默认显示通知。");
 }
-// -----------------------
 
 const rawToken = $.read(tokenKey);
 const token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
@@ -52,7 +44,7 @@ const commonHeaders = {
   const body = [signResult.message, flowerResult.message].filter(Boolean).join("\n");
 
   if (isSilent) {
-    console.log(`[静默生效] 拦截通知内容: ${body}`);
+    console.log(`[静默运行] 任务完成，通知已拦截:\n${body}`);
   } else {
     $.notify("声荐任务结果", "", body);
   }
