@@ -60,7 +60,7 @@ function signIn() {
       try {
         const result = JSON.parse(data || "{}");
         if (result.msg === "ok") resolve({ status: 'success', message: `✅ 签到: ${result.data?.prizeName || "成功"}` });
-        else if (String(result.msg || "").includes("已经")) resolve({ status: 'info', message: '📋 签到: 已签到' });
+        else if (String(result.msg || "").includes("已经")) resolve({ status: 'info', message: '📋 签到: 今日签到次数已用完' });
         else resolve({ status: 'error', message: `🚫 签到: ${result.msg || "未知"}` });
       } catch (e) { resolve({ status: 'error', message: '🤯 解析失败' }); }
     });
