@@ -1,13 +1,18 @@
-var $ = new Env("声荐");
+// 使用 var 替代 const 解决重复声明异常
+var $ = new Env("声荐终极修复版");
 var tokenKey = "shengjian_auth_token";
 
-// --- 逻辑：只识别真实的参数 ---
+// --- 静默逻辑判定 ---
 let isSilent = false;
 if (typeof $argument !== "undefined" && $argument) {
   const argStr = String($argument).toLowerCase();
-  // 只有当你手动填入 true, 1 或 # 时，才开启静默
   if (argStr.includes("true") || argStr.includes("#") || argStr.includes("1")) {
     isSilent = true;
+  }
+  // 针对 Loon 变量失效的补丁
+  if (argStr.includes("{silent_switch}")) {
+    isSilent = false; // 失效时默认显示通知，方便调试
+    console.log("⚠️ Loon 变量失效，已自动切换为：通知模式");
   }
 }
 
@@ -23,27 +28,27 @@ var commonHeaders = {
 
 (async () => {
   if (!token) {
-    if (!isSilent) $.notify("❌ 声荐失败", "未找到Token", "请获取。");
+    if (!isSilent) $.notify("❌ 声荐失败", "未找到Token", "请打开小程序获取。");
     return $.done();
   }
 
   const [signResult, flowerResult] = await Promise.all([signIn(), claimFlower()]);
 
-  // Token 失效是特例，必须通知
   if (signResult.status === 'token_error' || flowerResult.status === 'token_error') {
-    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取。");
+    $.notify("🛑 声荐认证失败", "Token 已过期", "请重新获取令牌。");
     return $.done();
   }
 
-  const body = [signResult.message, flowerResult.message].filter(Boolean).join("\n");
+  const lines = [signResult.message, flowerResult.message].filter(Boolean);
+  const body = lines.join("\n");
 
   if (isSilent) {
-    console.log(`[静默模式] 任务已完成。内容如下:\n${body}`);
+    console.log(`[静默生效] 已拦截内容:\n${body}`);
   } else {
-    $.notify("声荐结果", "", body);
+    $.notify("声荐任务结果", "", body);
   }
 })().catch((e) => {
-  console.log(`[异常] ${e}`);
+  console.log(`[脚本异常] ${e}`);
   if (!isSilent) $.notify("💥 声荐脚本崩溃", "", String(e));
 }).finally(() => $.done());
 
@@ -57,7 +62,7 @@ function signIn() {
         const result = JSON.parse(data || "{}");
         if (result.msg === "ok") resolve({ status: 'success', message: `✅ 签到: ${result.data?.prizeName || "成功"}` });
         else if (String(result.msg || "").includes("已经")) resolve({ status: 'info', message: '📋 签到: 已签到' });
-        else resolve({ status: 'error', message: `🚫 签到: ${result.msg || "错误"}` });
+        else resolve({ status: 'error', message: `🚫 签到: ${result.msg || "未知"}` });
       } catch (e) { resolve({ status: 'error', message: '🤯 解析失败' }); }
     });
   });
@@ -77,4 +82,5 @@ function claimFlower() {
   });
 }
 
+// --- Env 适配 (已将内部 const 改为 var) ---
 function Env(n){this.name=n;this.notify=(t,s,b)=>{if(typeof $notification!="undefined")$notification.post(t,s,b);else if(typeof $notify!="undefined")$notify(t,s,b);else console.log(`${t}\n${s}\n${b}`)};this.read=k=>{if(typeof $persistentStore!="undefined")return $persistentStore.read(k);if(typeof $prefs!="undefined")return $prefs.valueForKey(k)};this.put=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.put(r,c)};this.post=(r,c)=>{if(typeof $httpClient!="undefined")$httpClient.post(r,c)};this.done=v=>{if(typeof $done!="undefined")$done(v)}}
