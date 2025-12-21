@@ -1,27 +1,30 @@
-/*
-声荐每日自动签到
-脚本说明：支持自定义静默运行。
-*/
-
 const $ = new Env("声荐自动签到");
 const tokenKey = "shengjian_auth_token";
 
+// --- 增强调试与逻辑部分 ---
 let isSilent = false;
+console.log(`[调试] 原始 $argument 类型: ${typeof $argument}`);
+
 if (typeof $argument !== "undefined" && $argument) {
   const argStr = String($argument).toLowerCase();
-  console.log(`[参数检查] 当前参数内容: ${argStr}`);
+  console.log(`[调试] 接收到的参数内容: "${argStr}"`);
   
-  // 1. 正常逻辑：只有明确包含 true, # 或 1 时才静默
-  if (argStr.includes("true") || argStr.includes("#") || argStr.includes("1")) {
+  // 逻辑：只有明确为 true 时才静默
+  if (argStr.includes("true") || argStr === "1") {
     isSilent = true;
+    console.log("[状态] 确认开启静默模式。");
+  } else if (argStr.includes("{silent_switch}")) {
+    // 关键点：如果 Loon 没替换变量，我们强制认为它是 false (关闭静默)
+    isSilent = false;
+    console.log("[状态] 检测到 Loon 变量替换失效，已强制恢复通知。");
+  } else {
+    isSilent = false;
+    console.log("[状态] 参数为 false 或其他，正常显示通知。");
   }
-  
-  // 2. 容错处理：如果 Loon 没能正确替换变量（显示为 {silent_switch}），则视为不静默，确保通知触达
-  if (argStr.includes("{silent_switch}")) {
-    console.log("⚠️ 检测到 Loon 变量未正确替换，默认关闭静默模式以显示通知。");
-    isSilent = false; 
-  }
+} else {
+  console.log("[调试] 未检测到任何参数输入，默认显示通知。");
 }
+// -----------------------
 
 const rawToken = $.read(tokenKey);
 const token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
@@ -49,7 +52,7 @@ const commonHeaders = {
   const body = [signResult.message, flowerResult.message].filter(Boolean).join("\n");
 
   if (isSilent) {
-    console.log(`[静默运行] 已拦截以下通知内容:\n${body}`);
+    console.log(`[静默生效] 拦截通知内容: ${body}`);
   } else {
     $.notify("声荐任务结果", "", body);
   }
