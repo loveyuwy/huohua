@@ -1,5 +1,5 @@
 #!name=声荐每日自动签到
-#!desc=微信小程序声荐每日签到加领取小红花，首次运行请打开微信声荐小程序，等收到获取token即可。日后提示token失效就再打开微信声荐小程序更新token。脚本签到时间默认10,11,12点运行，可自行修改。小程序后面要是出现卡顿或无法进入可关闭token抓取。立即执行开关打开后脚本5秒运行一次，所以收到通知后马上关闭，不然会一直弹窗
+#!desc=微信小程序声荐每日签到加领取小红花，首次运行请打开微信声荐小程序，等收到获取token即可。日后提示token失效就再打开微信声荐小程序更新token。脚本签到时间默认10,11,12点运行，可自行修改。小程序后面要是出现卡顿或无法进入可关闭token抓取。立即执行开关打开后脚本5秒运行一次，所以收到通知后马上关闭，不然会一直弹窗。静默运行打开后脚本还是会签到，但不会发送弹窗通知，不喜欢弹窗可以打开静默运行。
 #!author=〈ザㄩメ火华
 #!icon=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/SJ.png
 
@@ -16,12 +16,15 @@ cron1 = input, "*/5 * * * * *", tag = 任务执行时间, desc = CRON 表达式�
 # 新增：任务启停开关 —— 打开即运行，关闭即停止
 sjqd1_enable = switch, false, true, tag = 立即执行（收到通知后马上关闭）, desc = 打开即开始执行次任务（按上方间隔运行），关闭立即停止。
 
+# 静默运行开关
+silent_switch = switch, false, tag = 静默运行, desc = 开启后拦截签到成功的通知。
+
 [Script]
 # 自动抓取 Token
 http-response ^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjtoken.js, requires-body=true, timeout=60, tag=声荐自动抓取token, enable = {enable_token_capture}
 
 # 主每日任务（签到+小红花）
-cron {cron} script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjqd.js, timeout=60, tag=声荐每日任务
+cron {cron_exp} script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/sjqd2.js, timeout=60, tag=声荐任务, argument={silent_switch}
 
 # 次每日任务（支持启停控制）
 cron {cron1} script-path=https://github.com/loveyuwy/hao/raw/refs/heads/main/sjqd1.js, timeout=60, tag=声荐每日任务1, enable = {sjqd1_enable}
