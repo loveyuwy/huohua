@@ -1,130 +1,94 @@
-const $ = new Env("声荐组合任务");
+const $ = new Env("声荐任务");
 const tokenKey = "shengjian_auth_token";
-const statsKey = "shengjian_daily_stats"; 
+const statsKey = "shengjian_daily_stats";
 
-// ----------------- 参数解析 (增强兼容性) -----------------
+// --- 完全对齐酷我的参数解析逻辑 ---
 const ARGS = (() => {
-  let args = { notify: "1" }; // 默认开启通知
-  if (typeof $argument !== "undefined" && $argument) {
-    // 处理 notify=1 或 notify:1 这种格式
-    const rawArgs = $argument.replace(/\s+/g, "");
-    const parts = rawArgs.split(/[&,]/);
-    parts.forEach(p => {
-      let [k, v] = p.split(/[=:]/);
-      if (k) args[k] = v;
-    });
-  }
-  return args;
+    let args = { notify: "1" };
+    if (typeof $argument !== "undefined" && $argument) {
+        let str = $argument.trim();
+        if (str.includes("=")) {
+            str.split('&').forEach(item => {
+                let [k, v] = item.split('=');
+                if (k) args[k] = v;
+            });
+        }
+    }
+    return args;
 })();
-
-console.log(`[参数检查] 当前通知模式: ${ARGS.notify === "1" ? "每次通知" : "22点汇总"}`);
 
 const rawToken = $.read(tokenKey);
 const token = rawToken ? (rawToken.startsWith("Bearer ") ? rawToken : `Bearer ${rawToken}`) : null;
 
-const commonHeaders = {
-  "Authorization": token,
-  "Content-Type": "application/json",
-  "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.64 NetType/4G Language/zh_CN",
-  "Referer": "https://servicewechat.com/wxa25139b08fe6e2b6/23/page-frame.html"
-};
+// --- 汇总逻辑 ---
+const now = new Date();
+const hour = now.getHours();
+const isLastRun = (hour === 22); // 22点汇总
 
-// ----------------- 汇总逻辑 -----------------
-function getDailyStats() {
-  const today = new Date().toISOString().slice(0, 10);
-  let stats = {};
-  try { stats = JSON.parse($.read(statsKey) || "{}"); } catch (e) { stats = {}; }
-  if (stats.date !== today) {
-    stats = { date: today, logs: [] };
-  }
-  return stats;
-}
-
-function saveDailyStats(stats) {
-  $.write(JSON.stringify(stats), statsKey);
-}
-
-// ----------------- 核心任务 -----------------
-function signIn() {
-  return new Promise((resolve) => {
-    $.put({ url: "https://xcx.myinyun.com:4438/napi/gift", headers: commonHeaders, body: "{}" }, (err, res, data) => {
-      if (err) return resolve({ status: 'error', message: '📡 签到: 网络错误' });
-      const code = res ? (res.status || res.statusCode) : 0;
-      if (code === 401) return resolve({ status: 'token_error', message: 'Token 已过期' });
-      try {
-        const result = JSON.parse(data);
-        if ((code === 200 || code === "200") && result.msg === "ok") {
-          resolve({ status: 'success', message: `✅ 签到: ${result.data?.prizeName || "成功"}` });
-        } else {
-          resolve({ status: 'info', message: `📋 签到: ${result.msg || "完成"}` });
-        }
-      } catch { resolve({ status: 'error', message: '🤯 签到: 解析失败' }); }
-    });
-  });
-}
-
-function claimFlower() {
-  return new Promise((resolve) => {
-    $.post({ url: "https://xcx.myinyun.com:4438/napi/flower/get", headers: commonHeaders, body: "{}" }, (err, res, data) => {
-      if (err) return resolve({ status: 'info', message: '⏰ 领花: 超时或未到时间' });
-      if (data === "true") return resolve({ status: 'success', message: '🌺 已领小红花' });
-      try {
-        const obj = JSON.parse(data);
-        if (obj.statusCode === 401) resolve({ status: 'token_error', message: 'Token失效' });
-        else resolve({ status: 'info', message: `🌸 领花: ${obj.message || '已处理'}` });
-      } catch { resolve({ status: 'info', message: '👍 领花: 已领过' }); }
-    });
-  });
-}
-
-// ----------------- 主流程 -----------------
 (async () => {
-  if (!token) {
-    $.notify("❌ 声荐失败", "", "未找到令牌，请打开小程序获取");
-    return $.done();
-  }
+    if (!token) {
+        $.notify("声荐失败", "", "❌ 未找到令牌，请打开小程序");
+        return $.done();
+    }
 
-  const [signRes, flowerRes] = await Promise.all([signIn(), claimFlower()]);
-  
-  const now = new Date();
-  const hour = now.getHours();
-  const isLastRun = (hour === 22);
+    const commonHeaders = {
+        "Authorization": token,
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.64 NetType/4G Language/zh_CN",
+        "Referer": "https://servicewechat.com/wxa25139b08fe6e2b6/23/page-frame.html"
+    };
 
-  // 记录日志
-  let stats = getDailyStats();
-  const logEntry = `[${hour}:00] ${signRes.message} / ${flowerRes.message}`;
-  stats.logs.push(logEntry);
-  saveDailyStats(stats);
+    // 执行任务
+    const [signRes, flowerRes] = await Promise.all([
+        performTask("https://xcx.myinyun.com:4438/napi/gift", "PUT", commonHeaders),
+        performTask("https://xcx.myinyun.com:4438/napi/flower/get", "POST", commonHeaders)
+    ]);
 
-  if (signRes.status === 'token_error' || flowerRes.status === 'token_error') {
-    $.notify("🛑 声荐令牌过期", "", "请重新登录小程序");
-    return $.done();
-  }
+    // 记录结果
+    let stats = getDailyStats();
+    stats.logs.push(`[${hour}:00] ${signRes} / ${flowerRes}`);
+    saveDailyStats(stats);
 
-  // 判断通知逻辑
-  if (String(ARGS.notify) === "1") {
-    // 每次运行都通知
-    $.notify("声荐自动任务", "", `${signRes.message}\n${flowerRes.message}`);
-  } else if (isLastRun) {
-    // 仅在22点汇总通知
-    $.notify("📊 声荐今日汇总", `累计执行 ${stats.logs.length} 次`, stats.logs.join("\n"));
-  } else {
-    console.log(`[静默模式] 当前${hour}点，非汇总时间，日志已存。`);
-  }
+    // 通知判断
+    if (ARGS.notify === "1") {
+        // 加上时间戳标题，防止 Surge 以为是重复通知而拦截
+        $.notify(`声荐报告 (${hour}:00)`, "", `${signRes}\n${flowerRes}`);
+    } else if (isLastRun) {
+        $.notify("📊 声荐今日汇总", `共执行 ${stats.logs.length} 次`, stats.logs.join("\n"));
+    }
 
-  $.done();
-})().catch(e => { console.log(e); $.done(); });
+    $.done();
+})();
 
-// ----------------- Env 兼容层 -----------------
-function Env(name) {
-  this.name = name;
-  this.read = k => (typeof $persistentStore !== "undefined" ? $persistentStore.read(k) : null);
-  this.write = (v, k) => (typeof $persistentStore !== "undefined" ? $persistentStore.write(v, k) : false);
-  this.notify = (t, s, b) => {
-    if (typeof $notification !== "undefined") $notification.post(t, s, b);
-    console.log(`${t}\n${s}\n${b}`);
-  };
-  this.put = (r, c) => (typeof $httpClient !== "undefined" ? $httpClient.put(r, c) : null);
-  this.post = (r, c) => (typeof $httpClient !== "undefined" ? $httpClient.post(r, c) : null);
-  this.done = (v = {}) => (typeof $done !== "undefined" ? $done(v) : null);
+// --- 工具函数 ---
+async function performTask(url, method, headers) {
+    return new Promise(resolve => {
+        const req = { url, headers, body: "{}" };
+        const handler = (err, res, data) => {
+            if (err) return resolve("❌ 网络错误");
+            try {
+                const json = JSON.parse(data);
+                if (url.includes("gift")) return resolve(json.msg === "ok" ? "✅ 签到成功" : `📋 ${json.msg}`);
+                return resolve(data === "true" ? "🌺 领花成功" : "🌸 已领过");
+            } catch (e) { resolve("🤔 响应异常"); }
+        };
+        method === "PUT" ? $.put(req, handler) : $.post(req, handler);
+    });
+}
+
+function getDailyStats() {
+    const today = new Date().toISOString().slice(0, 10);
+    let stats = JSON.parse($.read(statsKey) || "{}");
+    return (stats.date === today) ? stats : { date: today, logs: [] };
+}
+
+function saveDailyStats(s) { $.write(JSON.stringify(s), statsKey); }
+
+function Env(n) {
+    this.read = k => $persistentStore.read(k);
+    this.write = (v, k) => $persistentStore.write(v, k);
+    this.notify = (t, s, b) => $notification.post(t, s, b);
+    this.put = (r, c) => $httpClient.put(r, c);
+    this.post = (r, c) => $httpClient.post(r, c);
+    this.done = () => $done({});
 }
