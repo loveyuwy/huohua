@@ -1,16 +1,17 @@
 #!name=声荐每日自动签到
-#!desc=微信小程序声荐每日签到。自动签到频率：7-22点每3小时运行。
+#!desc=微信小程序声荐每日签到。
 #!author=〈ザㄩメ火华
 #!category=每日提醒
-#!arguments=CRON设置:"0 7-22/3 * * *", 自动抓取开关:"", notify:"1"
-#!arguments-desc=CRON设置: 签到脚本的 CRON 表达式; 自动抓取开关: 填写 # 即可禁用Token捕获; notify: 通知模式 (1=每次通知, 0=仅22点汇总)
+#!arguments=notify:"1"
+#!arguments-desc=notify: 通知模式 (1=每次通知, 0=仅22点汇总)
 
 [Script]
-# 捕获 Token 脚本
-{{{自动抓取开关}}}声荐自动抓取token = type=http-response, pattern=^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login, script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjtoken.js, requires-body=true, max-size=0, timeout=60
+# 捕获 Token
+声荐自动抓取token = type=http-response, pattern=^https:\/\/xcx\.myinyun\.com:4438\/napi\/wx\/login, script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/sjtoken.js, requires-body=true, max-size=0, timeout=60
 
-# 自动签到任务 - 注意 argument 这里的写法
-声荐自动任务 = type=cron, cronexp="{{{CRON设置}}}", script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/sjqd2.js, timeout=60, argument=notify={{{notify}}}
+# 模拟酷我模式：不参数化CRON，只参数化notify
+# 时间设置为：早7点到晚10点，每3小时运行一次 (0 7,10,13,16,19,22 * * *)
+声荐自动任务 = type=cron, cronexp="0 7,10,13,16,19,22 * * *", script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/sjqd2.js, timeout=60, argument=notify={{{notify}}}
 
 [MITM]
 hostname = %APPEND% xcx.myinyun.com:4438
