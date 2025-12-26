@@ -1,13 +1,13 @@
 #!name=iKuuu签到助手
 #!desc=集成了自动签到与Cookie获取。
 #!author=〈ザㄩメ火华
-#!arguments=CRON定时:"0 9 * * *", 抓取开关:"^https:\/\/ikuuu\.de\/user"
-#!arguments-desc=CRON定时: 每天签到的时间\n抓取开关: 默认开启。若要禁用抓取，请随便填一个不匹配的字符（例如填 0 ）。
-
+#!arguments=CRON定时设置:"0 9 * * *", iKuuu获取Cookie:""
+#!arguments-desc=CRON定时设置: 签到脚本的 CRON 表达式\n ikuuu获取cookie: 填写 # 即可禁用Token捕获，清空则开启。
 [Script]
-iKuuu_GetCookie = type=http-request, pattern={{抓取开关}}, script-path=https://github.com/loveyuwy/hao/raw/refs/heads/main/ikuuu_cookie.js, requires-body=false
+# 获取 Cookie
+{{{iKuuu获取Cookie}}}iKuuu获取Cookie = type=http-request, pattern=^https:\/\/ikuuu\.de\/user, script-https://github.com/loveyuwy/huohua/raw/refs/heads/main/ikuuu_auto.js, requires-body=false
 
-iKuuu_Checkin = type=cron, cronexp="{{CRON定时}}", script-path=https://github.com/loveyuwy/huohua/raw/refs/heads/main/ikuuu_auto.js, timeout=60
-
+# 执行签到
+ikuuu自动签到 = type=cron, cronexp="{{{CRON定时设置}}}", script-path=https://github.com/loveyuwy/huohua/raw/refs/heads/main/ikuuu_auto.js
 [MITM]
 hostname = %APPEND% ikuuu.de
