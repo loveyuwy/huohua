@@ -5,9 +5,9 @@
 #!arguments-desc=CRON定时: 每天签到的时间\n抓取开关: 默认开启。若要禁用抓取，请随便填一个不匹配的字符（例如填 0 ）。
 
 [Script]
-iKuuu_GetCookie = type=http-request, pattern={{抓取开关}}, script-path=ikuuu_auto.js, requires-body=false
+iKuuu_GetCookie = type=http-request, pattern={{抓取开关}}, script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/ikuuu_auto.js, requires-body=false
 
-iKuuu_Checkin = type=cron, cronexp="{{CRON定时}}", script-path=ikuuu_auto.js, timeout=60
+iKuuu_Checkin = type=cron, cronexp="{{CRON定时}}", script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/ikuuu_auto.js, timeout=60
 
 [MITM]
 hostname = %APPEND% ikuuu.de
