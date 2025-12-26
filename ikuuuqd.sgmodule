@@ -5,9 +5,9 @@
 #!arguments-desc=CRON定时设置: 签到脚本的 CRON 表达式\n ikuuu获取cookie: 填写 # 即可禁用Token捕获，清空则开启。
 [Script]
 # 获取 Cookie
-{{{iKuuu获取Cookie}}}iKuuu获取Cookie = type=http-request, pattern=^https:\/\/ikuuu\.de\/user, script-https://github.com/loveyuwy/huohua/raw/refs/heads/main/ikuuu_auto.js, requires-body=false
+{{{iKuuu获取Cookie}}}iKuuu获取Cookie = type=http-request, pattern=^https:\/\/ikuuu\.de\/user, https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/ikuuu_auto.js, requires-body=false
 
 # 执行签到
-ikuuu自动签到 = type=cron, cronexp="{{{CRON定时设置}}}", script-path=https://github.com/loveyuwy/huohua/raw/refs/heads/main/ikuuu_auto.js, timeout=60
+ikuuu自动签到 = type=cron, cronexp="{{{CRON定时设置}}}", script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/ikuuu_auto.js, timeout=60
 [MITM]
 hostname = %APPEND% ikuuu.de
