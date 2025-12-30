@@ -1,9 +1,11 @@
 #!name=今日天气
-#!desc=https://raw.githubusercontent.com/deezertidal/Surge_Module/master/files/tianqi.js 里面找代码填写到cityId=后面。加入本地模块
-
+#!desc=显示当地天气信息，支持自定义地区、颜色和静默模式。
+#!category=日常工具
+#!arguments=CityId:101280503, IconColor:#ffc400, IconName:sun.max.fill, CronExp:10 8-22/3 * * *, Silent:""
+#!arguments-desc=CityId: 城市代码（可在脚本最下面查找城市代码）\n IconColor: 图标颜色 (Hex颜色码)\n IconName: SF Symbol图标名称\n CronExp: CRON 定时表达式\n Silent: 静默运行 (填 # 则静默不通知，留空则正常通知)
 
 [Script]
-天气 = type=cron,script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/tianqi.js,argument=icon=sun.max.fill&color=#ffc400&cityId=101280503,cronexp=10 8-22/3 * * *,script-update-interval=0
+天气 = type=cron, script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/tianqi.js, argument=icon={{{IconName}}}&color={{{IconColor}}}&cityId={{{CityId}}}&silent={{{Silent}}}, cronexp={{{CronExp}}}, script-update-interval=0
 
 [Panel]
-天气=script-name=天气
+天气 = script-name=天气
