@@ -7,7 +7,7 @@
 #!arguments-desc=Province: 查询省份 (例如：北京、上海、广东)\nSilent: 静默运行 (填 # 则不通知，留空则正常通知)\nIconName: SF Symbol 图标名称\nIconColor: 图标颜色 (Hex)\nCronExp: 定时任务时间 (CRON 表达式)
 
 [Script]
-今日油价 = type=cron, cronexp={{{CronExp}}}, script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/jryj.js, argument=province={{{Province}}}&silent={{{Silent}}}&icon={{{IconName}}}&color={{{IconColor}}}, wake-system=0, timeout=10
+今日油价 = type=cron, cronexp={{{CronExp}}}, script-path=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/jryj.js, argument=province={{{Province}}}&silent={{{Silent}}}&icon={{{IconName}}}&color={{{IconColor}}}, wake-system=0, timeout=60
 
 [Panel]
 今日油价 = script-name=今日油价, update-interval=43200
