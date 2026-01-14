@@ -1,7 +1,6 @@
 const params = getParams($argument);
 const cityId = params.cityId || "101190401";
 const apiUrl = `http://t.weather.sojson.com/api/weather/city/${cityId}`;
-// 获取静默参数，如果包含 # 则为静默模式
 const isSilent = params.silent === "#";
 
 $httpClient.get(apiUrl, (error, response, data) => {
@@ -24,7 +23,6 @@ $httpClient.get(apiUrl, (error, response, data) => {
   const cityInfo = weatherData.cityInfo;
   const currentWeather = weatherData.data.forecast[0];
   
-  // --- 请复制以下代码覆盖对应位置 ---
   
   // 天气图标映射
   const weatherIcons = {
@@ -38,7 +36,6 @@ $httpClient.get(apiUrl, (error, response, data) => {
     "霾": "😷"
   };
   
-  // 获取匹配的天气图标
   const getWeatherIcon = (weather) => {
     for (const [key, icon] of Object.entries(weatherIcons)) {
       if (weather.includes(key)) return icon;
@@ -46,31 +43,23 @@ $httpClient.get(apiUrl, (error, response, data) => {
     return "🌈";
   };
   
-  // 空气质量图标
   const qualityIcon = weatherData.data.quality === "优" ? "✅" : 
                      weatherData.data.quality === "良" ? "⚠️" : "❌";
   
   const weatherIcon = getWeatherIcon(currentWeather.type);
 
-  // 1. 定义标题 (之前报错就是因为缺了这行)
   const notifyTitle = `${weatherIcon} ${cityInfo.city}天气预报`;
 
-  // 2. 预处理温度
   const low = currentWeather.low.replace("低温", "⬇️").trim();
   const high = currentWeather.high.replace("高温", "⬆️").trim();
   
-  // 3. 定义内容 (4行格式)
   const notifyContent = `${weatherIcon} 天气：${currentWeather.type}  🌡️ ${low} ${high}
 ${qualityIcon} 空气：${weatherData.data.quality}  |   ${weatherData.data.shidu}  |  💨 ${currentWeather.fx}${currentWeather.fl}
 🌅 日出：${currentWeather.sunrise}  |  🌇 日落：${currentWeather.sunset}
 📌 提示：${currentWeather.notice}`;
 
-  // --- 复制结束 ---
 
 
-
-
-  // 判断静默状态：只有不是静默模式(!isSilent)才发送通知
   if (!isSilent) {
       $notification.post(notifyTitle, "", notifyContent);
   } else {
