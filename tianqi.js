@@ -50,12 +50,9 @@ $httpClient.get(apiUrl, (error, response, data) => {
   
   const weatherIcon = getWeatherIcon(currentWeather.type);
   
-  // 通知内容
-  const notifyTitle = `${weatherIcon} ${cityInfo.city}天气预报`;
-  const notifyContent = `${weatherIcon} 天气：${currentWeather.type}🌡️ 温度：${currentWeather.low.replace("低温", "⬇️")} ${currentWeather.high.replace("高温", "⬆️")}
-${qualityIcon} 空气：${weatherData.data.quality} | 💧湿度：${weatherData.data.shidu}💨 ${currentWeather.fx} ${currentWeather.fl}
-🌅 ${currentWeather.sunrise} | 🌇 ${currentWeather.sunset}
-📌 ${currentWeather.notice}`;
+  // 通知内容 - 已去除强制换行，改用竖线分隔
+  const notifyContent = `${weatherIcon} 天气：${currentWeather.type} 🌡️ 温度：${currentWeather.low.replace("低温", "⬇️")} ${currentWeather.high.replace("高温", "⬆️")} | ${qualityIcon} 空气：${weatherData.data.quality} | 💧湿度：${weatherData.data.shidu} | 💨 ${currentWeather.fx} ${currentWeather.fl} | 🌅 ${currentWeather.sunrise} 🌇 ${currentWeather.sunset} | 📌 ${currentWeather.notice}`;
+
 
   // 判断静默状态：只有不是静默模式(!isSilent)才发送通知
   if (!isSilent) {
