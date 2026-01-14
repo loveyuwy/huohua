@@ -52,10 +52,8 @@ $httpClient.get(apiUrl, (error, response, data) => {
   
   // 通知内容
   const notifyTitle = `${weatherIcon} ${cityInfo.city}天气预报`;
-  const notifyContent = `${weatherIcon} 天气：${currentWeather.type}
-🌡️ 温度：${currentWeather.low.replace("低温", "⬇️")} ${currentWeather.high.replace("高温", "⬆️")}
-${qualityIcon} 空气：${weatherData.data.quality} | 💧湿度：${weatherData.data.shidu}
-💨 ${currentWeather.fx} ${currentWeather.fl}
+  const notifyContent = `${weatherIcon} 天气：${currentWeather.type}🌡️ 温度：${currentWeather.low.replace("低温", "⬇️")} ${currentWeather.high.replace("高温", "⬆️")}
+${qualityIcon} 空气：${weatherData.data.quality} | 💧湿度：${weatherData.data.shidu}💨 ${currentWeather.fx} ${currentWeather.fl}
 🌅 ${currentWeather.sunrise} | 🌇 ${currentWeather.sunset}
 📌 ${currentWeather.notice}`;
 
