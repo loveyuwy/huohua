@@ -1,21 +1,3 @@
-/**
- * 名称: 应用更新检测 (Loon修复版)
- * 描述: 修复 Loon 报错 $http 的问题。支持 Surge, Loon, Quantumult X。
- * 作者: 〈ザㄩメ火华
- * * =========================================
- * [配置示例]
- * * Surge:
- * [Script]
- * AppMonitor = type=cron, cronexp=0 9 * * *, script-path=https://path/to/script.js, timeout=60
- * * Loon:
- * [Script]
- * cron "0 9 * * *" script-path=https://path/to/script.js, tag=应用检测, timeout=60
- * * Quantumult X:
- * [task_local]
- * 0 9 * * * https://path/to/script.js, tag=应用检测, img-url=https://raw.githubusercontent.com/crossutility/Quantumult-X/master/quantumult-x.png, enabled=true
- * =========================================
- */
-
 const $ = new Env("应用更新检测");
 
 const appList = [
@@ -28,32 +10,28 @@ const appList = [
   },
   {
     name: "Surge",
-    bundleId: "com.nssurge.inc.surge-ios",
+    bundleId: "com.nssurge.inc.surge-ios", // 仅保留 Surge 5 的 ID
     icon: "⚡️",
-    category: "代理工具",
-    fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.nssurge.inc.surge"
+    category: "代理工具"
   },
   {
     name: "Loon",
     bundleId: "com.ruikq.decar",
     icon: "🎈",
-    category: "代理工具",
-    fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.ruikq.decar" 
+    category: "代理工具"
   },
   {
     name: "Quantumult X",
     bundleId: "com.crossutility.quantumult-x",
     icon: "🌀",
-    category: "代理工具",
-    fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.crossutility.quantumult-x"
+    category: "代理工具"
   },
   // 微信
   {
     name: "微信",
     bundleId: "com.tencent.xin",
     icon: "💬",
-    category: "社交应用",
-    fallbackUrl: "https://itunes.apple.com/hk/lookup?bundleId=com.tencent.xin"
+    category: "社交应用"
   }
 ];
 
@@ -73,10 +51,12 @@ function compareVersions(v1, v2) {
   return 0;
 }
 
-// 封装通用请求函数，适配 QX/Surge/Loon
+// 封装通用请求函数
 function request(url) {
   return new Promise((resolve, reject) => {
-    $.get({ url }, (error, response, body) => {
+    // 增加时间戳防止缓存
+    const timeUrl = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+    $.get({ url: timeUrl }, (error, response, body) => {
       if (error) {
         reject(error);
       } else {
@@ -96,62 +76,53 @@ function request(url) {
   });
 }
 
-// 增强版请求逻辑
+// 核心修复：多区域并发查询取最大值
 async function enhancedFetch(app) {
   const isWeChat = app.bundleId === "com.tencent.xin";
-  const isSurge = app.name === "Surge";
   
-  const surgeAlternativeBundleId = "com.nssurge.inc.surge";
+  // 定义查询区域，US 通常更新最快
+  let regions = ['US', 'HK', 'CN'];
   
-  let urls;
-  
-  if (isWeChat) {
-    urls = [
-      "https://itunes.apple.com/hk/lookup?bundleId=com.tencent.xin",
-      "https://itunes.apple.com/cn/lookup?bundleId=com.tencent.xin",
-      "https://itunes.apple.com/us/lookup?bundleId=com.tencent.xin"
-    ];
-  } else if (isSurge) {
-    urls = [
-      `https://itunes.apple.com/hk/lookup?bundleId=${app.bundleId}`,
-      `https://itunes.apple.com/hk/lookup?bundleId=${surgeAlternativeBundleId}`,
-      `https://itunes.apple.com/cn/lookup?bundleId=${app.bundleId}`,
-      `https://itunes.apple.com/cn/lookup?bundleId=${surgeAlternativeBundleId}`,
-      `https://itunes.apple.com/us/lookup?bundleId=${app.bundleId}`,
-      `https://itunes.apple.com/us/lookup?bundleId=${surgeAlternativeBundleId}`
-    ];
-  } else {
-    urls = [
-      app.fallbackUrl || `https://itunes.apple.com/lookup?bundleId=${app.bundleId}`,
-      `https://itunes.apple.com/cn/lookup?bundleId=${app.bundleId}`,
-      `https://itunes.apple.com/us/lookup?bundleId=${app.bundleId}`
-    ];
+  // Surge 和一些代理工具不在国区，减少无效请求
+  if (["Surge", "Shadowrocket"].includes(app.name)) {
+      regions = ['US', 'HK', 'JP'];
   }
-  
-  let lastError;
-  
-  for (const [index, url] of urls.entries()) {
+
+  // 构建所有区域的请求 Promise
+  const promises = regions.map(async (region) => {
+    const url = `https://itunes.apple.com/${region}/lookup?bundleId=${app.bundleId}`;
     try {
-      if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
-      }
-      
       const response = await request(url);
-      const data = response.data;
-      
-      if (data.results && data.results.length > 0) {
-        const version = data.results[0].version;
-        console.log(`✅ ${app.icon} ${app.name} 成功获取: ${version} (${url})`);
-        return { app, version };
-      } else {
-        throw new Error(`API返回空数据`);
+      if (response.data.results && response.data.results.length > 0) {
+        return response.data.results[0].version;
       }
-    } catch (error) {
-      lastError = error;
+    } catch (e) {
+      // 忽略单个区域的失败
     }
-  }
+    return null;
+  });
+
+  // 等待所有区域返回结果
+  const results = await Promise.all(promises);
   
-  throw new Error(`所有请求失败: ${lastError?.message || '未知错误'}`);
+  // 过滤掉无效结果
+  const validVersions = results.filter(v => v !== null);
+
+  if (validVersions.length === 0) {
+    throw new Error("所有区域查询失败");
+  }
+
+  // 对版本号进行排序，取最大值
+  // sort 默认是字符串排序，我们需要用 compareVersions 逻辑来找最大的
+  let maxVersion = validVersions[0];
+  for (let i = 1; i < validVersions.length; i++) {
+      if (compareVersions(validVersions[i], maxVersion) === 1) {
+          maxVersion = validVersions[i];
+      }
+  }
+
+  console.log(`✅ ${app.icon} ${app.name} 检测结果: ${maxVersion} (来源: [${regions.join(',')}])`);
+  return { app, version: maxVersion };
 }
 
 (async () => {
@@ -183,6 +154,8 @@ async function enhancedFetch(app) {
         
         if (compareResult === 1) { 
           hasUpdate = true;
+          // 防止分类不存在报错
+          if (!results.updated[app.category]) results.updated[app.category] = [];
           results.updated[app.category].push({
             app,
             oldVersion: savedVersion,
@@ -190,7 +163,8 @@ async function enhancedFetch(app) {
           });
           $.setdata(latest, key);
         } else if (compareResult === -1) {
-          console.log(`⚠️ ${app.name} API回退 (${latest} < ${savedVersion})，保持本地新版`);
+          // 如果API返回旧版（极为罕见的情况，因为我们取了最大值），保持本地记录
+          console.log(`⚠️ ${app.name} API数据异常 (${latest} < ${savedVersion})，保持本地新版`);
           results.current.push({ app, version: savedVersion, status: 'API回退' });
         } else {
           results.current.push({ app, version: latest, status: '最新版' });
@@ -201,7 +175,6 @@ async function enhancedFetch(app) {
     }
   });
 
-  const now = new Date();
   const executionTime = ((Date.now() - startTime) / 1000).toFixed(1);
   
   if (hasUpdate || results.failed.length > 0) {
@@ -213,11 +186,10 @@ async function enhancedFetch(app) {
     
     if (hasUpdate) {
       for (const category of ["代理工具", "社交应用"]) {
-        const updates = results.updated[category];
-        if (updates.length > 0) {
+        if (results.updated[category] && results.updated[category].length > 0) {
           if (hasContent) body += "\n";
           body += `🆕 ${category}更新:\n`;
-          body += updates.map(u => `${u.app.icon} ${u.app.name}: ${u.oldVersion} → ${u.newVersion}`).join("\n");
+          body += results.updated[category].map(u => `${u.app.icon} ${u.app.name}: ${u.oldVersion} → ${u.newVersion}`).join("\n");
           hasContent = true;
         }
       }
@@ -229,12 +201,15 @@ async function enhancedFetch(app) {
       body += results.failed.map(f => `${f.app.icon} ${f.app.name}: ${f.error}`).join("\n");
     }
     
+    // 如果有更新，顺便显示一下其他最新版的APP（可选，防止内容过长可注释掉）
     if (hasUpdate && results.current.length > 0) {
-        body += `\n✅ 最新版应用:\n`;
-        body += results.current.map(c => `${c.app.icon} ${c.app.name}: ${c.version}`).join("\n");
+         body += `\n✅ 最新版应用:\n`;
+         // 仅显示前3个防止通知太长
+         body += results.current.slice(0, 3).map(c => `${c.app.icon} ${c.app.name}: ${c.version}`).join("\n");
+         if(results.current.length > 3) body += `...以及其他 ${results.current.length - 3} 个`;
     }
     
-    body += `\n\n⏱️ 耗时: ${executionTime}s`;
+    body += `\n⏱️ 耗时: ${executionTime}s`;
     
     $.msg(title, subtitle, body);
   } else {
