@@ -54,7 +54,7 @@ $httpClient.get(apiUrl, (error, response, data) => {
   const high = currentWeather.high.replace("高温", "⬆️").trim();
   
   const notifyContent = `${weatherIcon} 天气：${currentWeather.type}  🌡️ ${low} ${high}
-${qualityIcon} 空气：${weatherData.data.quality}  |   ${weatherData.data.shidu}  |  💨 ${currentWeather.fx}${currentWeather.fl}
+${qualityIcon} 空气：${weatherData.data.quality} 💧 ${weatherData.data.shidu} 💨 ${currentWeather.fx}${currentWeather.fl}
 🌅 日出：${currentWeather.sunrise}  |  🌇 日落：${currentWeather.sunset}
 📌 提示：${currentWeather.notice}`;
 
