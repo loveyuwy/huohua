@@ -10,4 +10,4 @@
 # 执行签到
 ikuuu自动签到 = type=cron, cronexp="{{{CRON定时设置}}}", script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/ikuuu_auto.js, timeout=60
 [MITM]
-hostname = %APPEND% ikuuu.de
+hostname = %APPEND% ikuuu.nl
