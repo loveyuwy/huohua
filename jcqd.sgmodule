@@ -1,0 +1,8 @@
+#!name=机场签到
+#!desc=69云与ikuuu机场每日签到。支持参数配置：在 Silent 处填 # 即可静默运行，留空则正常弹出系统通知。
+#!arguments=Silent:""
+#!arguments-desc=Silent: 静默运行 (填 # 则静默不通知，留空则正常弹出通知)
+
+[Script]
+69云签到 = type=cron,cronexp=0 9 * * *,script-path=自动 2.js,timeout=60,argument=silent={{{Silent}}}
+ikuuu签到 = type=cron,cronexp=0 9 * * *,timeout=60,script-path=ikuuu.js,argument=silent={{{Silent}}}
