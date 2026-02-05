@@ -5,5 +5,5 @@
 #!arguments-desc=CRON定时设置: 签到脚本的 CRON 表达式\n Silent: 静默运行 (填 # 则静默不通知，留空则正常弹出通知)
 
 [Script]
-69云签到 = type=cron, cronexp="{{{CRON定时设置}}}", script-path=自动 2.js,timeout=60,argument=silent={{{Silent}}}
-ikuuu签到 = type=cron, cronexp="{{{CRON定时设置}}}", timeout=60,script-path=ikuuu.js,argument=silent={{{Silent}}}
+69云签到 = type=cron, cronexp="{{{CRON定时设置}}}", script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/69yun.js,timeout=60,argument=silent={{{Silent}}}
+ikuuu签到 = type=cron, cronexp="{{{CRON定时设置}}}", timeout=60,script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/ikuuu.js,argument=silent={{{Silent}}}
