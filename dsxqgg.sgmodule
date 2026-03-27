@@ -3,10 +3,12 @@
 #!category=去广告
 
 [Rule]
+# > 橘子
 DOMAIN,api-access.pangolin-sdk-toutiao-b.com,REJECT-TINYGIF
 DOMAIN,api-access.pangolin-sdk-toutiao.com,REJECT-TINYGIF
 DOMAIN,p26-be-pack-sign.pglstatp-toutiao.com,REJECT-TINYGIF
 DOMAIN,p11-sign.douyinpic.com,REJECT-TINYGIF
+# > 大师兄
 DOMAIN-SUFFIX,adservice.sigmob.cn,REJECT
 DOMAIN-SUFFIX,sdk.e.qq.com,REJECT
 DOMAIN-SUFFIX,gdfp.gifshow.com,REJECT
