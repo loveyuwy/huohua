@@ -5,6 +5,7 @@
 [Rule]
 # > 橘子
 DOMAIN,log-api.pangolin-sdk-toutiao.com,REJECT
+DOMAIN,api-access.pangolin-sdk-toutiao.com,REJECT-TINYGIF
 DOMAIN,p26-be-pack-sign.pglstatp-toutiao.com,REJECT-TINYGIF
 DOMAIN,p11-sign.douyinpic.com,REJECT-TINYGIF
 # > 大师兄
