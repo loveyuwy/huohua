@@ -76,30 +76,50 @@ function getSmartIcon(appName, category, customIcon) {
   return "📱";
 }
 
-// ========== 参数解析（适配 Loon 插件格式） ==========
+// ========== 参数解析（适配 Loon 对象格式） ==========
 let appList = [];
-const argStr = typeof $argument !== 'undefined' ? $argument : "";
+let rawApps = "";
 
-// 解析 key1=value1&key2=value2...
-const params = {};
-argStr.split('&').forEach(pair => {
-  const eqIndex = pair.indexOf('=');
-  if (eqIndex > 0) {
-    const key = decodeURIComponent(pair.substring(0, eqIndex));
-    const val = decodeURIComponent(pair.substring(eqIndex + 1));
-    params[key] = val;
-  }
-});
+// 获取 $argument，可能是对象或字符串
+const arg = typeof $argument !== 'undefined' ? $argument : {};
 
-// 收集 应用1 ~ 应用20
-const appFields = [];
-for (let i = 1; i <= 20; i++) {
-  const field = `应用${i}`;
-  if (params[field] && params[field].trim() !== '') {
-    appFields.push(params[field].trim());
+if (arg && typeof arg === 'object' && !Array.isArray(arg)) {
+  // Loon 新版：参数为对象 { "应用1": "xxx", "应用2": "yyy", ... }
+  const appFields = [];
+  for (let i = 1; i <= 20; i++) {
+    const val = arg[`应用${i}`];
+    if (val && typeof val === 'string' && val.trim() !== '') {
+      appFields.push(val.trim());
+    }
   }
+  rawApps = appFields.join(',');
+} else if (typeof arg === 'string') {
+  // 旧版或其它环境：参数为字符串 "key1=value1&key2=value2..." 或直接是应用列表
+  if (arg.includes('=')) {
+    const params = {};
+    arg.split('&').forEach(pair => {
+      const eqIndex = pair.indexOf('=');
+      if (eqIndex > 0) {
+        const key = decodeURIComponent(pair.substring(0, eqIndex));
+        const val = decodeURIComponent(pair.substring(eqIndex + 1));
+        params[key] = val;
+      }
+    });
+    const appFields = [];
+    for (let i = 1; i <= 20; i++) {
+      const val = params[`应用${i}`];
+      if (val && val.trim() !== '') {
+        appFields.push(val.trim());
+      }
+    }
+    rawApps = appFields.join(',');
+  } else {
+    // 直接是逗号分隔的应用列表
+    rawApps = arg;
+  }
+} else {
+  console.log("⚠️ 未检测到有效的参数配置");
 }
-const rawApps = appFields.join(',');
 
 // 解析应用配置
 if (rawApps) {
