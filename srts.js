@@ -1,6 +1,6 @@
 /**
  * 生日提醒助手 - 清爽无混淆版
- * 完美支持 Loon Plugin 传入的 [数据1,数据2,...,提前天数] 格式
+ * 完美支持 Loon Plugin 传入的 [数据1,数据2,...,提前天数] 格式及原生数组
  */
 
 const lunarInfo = [
@@ -56,45 +56,58 @@ function formatDate(date) {
 const $ = new Env("生日提醒");
 
 !(async () => {
-    let argStr = typeof $argument !== 'undefined' ? $argument : '';
+    let rawArg = typeof $argument !== 'undefined' ? $argument : '';
     let advanceDays = 3;
     let birthdayList = [];
 
-    // 解析 Loon 插件的 [参数1, 参数2, ..., 提前天数] 格式
-    if (argStr.startsWith('[') && argStr.endsWith(']')) {
-        let inner = argStr.slice(1, -1);
-        let parts = inner.split(',').map(s => s.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
-        
+    // 解析 Loon 的传参 (自动适配 原生数组 或 字符串 格式)
+    if (Array.isArray(rawArg)) {
+        // 如果 Loon 直接作为原生数组传入
+        let parts = rawArg.map(String).map(s => s.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
         if (parts.length > 0) {
-            let lastItem = parts.pop(); // 最后一个通常是提前天数
+            let lastItem = parts.pop();
             if (!isNaN(lastItem) && lastItem !== '') {
                 advanceDays = parseInt(lastItem);
             } else if (lastItem !== '') {
-                parts.push(lastItem); // 如果不是数字（意外情况），放回去
+                parts.push(lastItem);
             }
-            
-            // 提取前面的生日数据，兼容分号分隔的多人写法
             parts.forEach(p => {
-                if (p) {
-                    let subParts = p.split(';');
-                    birthdayList.push(...subParts.filter(sp => sp.trim() !== ''));
-                }
+                if (p) birthdayList.push(...p.split(';').filter(sp => sp.trim() !== ''));
             });
         }
     } else {
-        // 兼容普通字符串传参模式
-        let infoMatch = argStr.match(/info=([^&]+)/);
-        let advMatch = argStr.match(/advance=([^&]+)/);
-        if (advMatch) advanceDays = parseInt(advMatch[1]);
-        
-        let dataStr = infoMatch ? infoMatch[1] : argStr;
-        birthdayList = decodeURIComponent(dataStr).split(/;|\n/).filter(p => p.trim() !== '');
+        // 如果是字符串传入
+        let argStr = String(rawArg).trim();
+        if (argStr.indexOf('[') === 0 && argStr.lastIndexOf(']') === argStr.length - 1) {
+            let inner = argStr.slice(1, -1);
+            let parts = inner.split(',').map(s => s.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
+            if (parts.length > 0) {
+                let lastItem = parts.pop();
+                if (!isNaN(lastItem) && lastItem !== '') {
+                    advanceDays = parseInt(lastItem);
+                } else if (lastItem !== '') {
+                    parts.push(lastItem);
+                }
+                parts.forEach(p => {
+                    if (p) birthdayList.push(...p.split(';').filter(sp => sp.trim() !== ''));
+                });
+            }
+        } else {
+            // 普通 URL format info=xxx&advance=3
+            let infoMatch = argStr.match(/info=([^&]+)/);
+            let advMatch = argStr.match(/advance=([^&]+)/);
+            if (advMatch) advanceDays = parseInt(advMatch[1]);
+            let dataStr = infoMatch ? infoMatch[1] : argStr;
+            if (dataStr) {
+                birthdayList = decodeURIComponent(dataStr).split(/;|\n/).filter(p => p.trim() !== '');
+            }
+        }
     }
 
     $.log(`🔔 参数配置: [提前 ${advanceDays} 天] | 生日数据: ${birthdayList.length}条`);
 
     if (birthdayList.length === 0) {
-        $.log("⚠️ 未检测到生日数据，请检查模块参数！");
+        $.log("⚠️ 未检测到有效的生日数据，请检查插件参数！");
         return $.done();
     }
 
