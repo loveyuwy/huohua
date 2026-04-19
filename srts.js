@@ -1,8 +1,5 @@
 /**
- * 生日提醒助手 - 深度兼容版
- * 1. 专门适配 Loon 10+1 参数位格式
- * 2. 自动修正各类日期横杠符号 (-, −, —, ﹣)
- * 3. 完美支持农历/公历
+ * 生日提醒助手 - 深度解析调试版
  */
 
 const lunarInfo = [
@@ -17,7 +14,6 @@ function getLunarYearDays(y) {
     for (let i = 0x8000; i > 0x8; i >>= 1) sum += (lunarInfo[y - 1900] & i) ? 1 : 0;
     return sum + getLeapDays(y);
 }
-
 function solarToLunar(date) {
     let y = date.getFullYear();
     if (y < 1900 || y > 2100) return null;
@@ -26,17 +22,13 @@ function solarToLunar(date) {
     let tempYear = 1900;
     let daysOfYear = getLunarYearDays(tempYear);
     while (tempYear < 2101 && offset >= daysOfYear) {
-        offset -= daysOfYear;
-        tempYear++;
+        offset -= daysOfYear; tempYear++;
         daysOfYear = getLunarYearDays(tempYear);
     }
-    let tempMonth = 1;
-    let isLeap = false;
-    let leapMonth = getLeapMonth(tempYear);
+    let tempMonth = 1; let isLeap = false; let leapMonth = getLeapMonth(tempYear);
     for (let i = 1; i <= 12; i++) {
         if (leapMonth > 0 && i === (leapMonth + 1) && !isLeap) {
-            --i; isLeap = true;
-            let leapDays = getLeapDays(tempYear);
+            --i; isLeap = true; let leapDays = getLeapDays(tempYear);
             if (offset < leapDays) { tempMonth = i; break; }
             offset -= leapDays;
         } else {
@@ -47,47 +39,51 @@ function solarToLunar(date) {
     }
     return { month: tempMonth, day: offset + 1 };
 }
-
 function formatDate(date) {
     return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-const $ = new Env("生日提醒助手");
+const $ = new Env("生日提醒");
 
 !(async () => {
-    let rawArg = typeof $argument !== 'undefined' ? $argument : '';
+    let rawArg = (typeof $argument !== 'undefined') ? $argument : '';
     let advanceDays = 3;
     let birthdayList = [];
 
-    // --- 精准解析 Loon 的 10+1 参数位 ---
-    if (Array.isArray(rawArg)) {
-        // 最后一个位置 (索引10) 是提前天数
-        if (rawArg.length >= 11) {
-            let daysVal = String(rawArg[10]).trim().replace(/"/g, '');
-            if (daysVal && !isNaN(daysVal)) advanceDays = parseInt(daysVal);
-            
-            // 前 10 个位置是生日数据
-            for (let i = 0; i < 10; i++) {
-                let p = String(rawArg[i]).trim().replace(/^["']|["']$/g, '');
-                if (p && p !== '""' && p !== "''") {
-                    birthdayList.push(...p.split(';').filter(s => s.trim()));
-                }
+    $.log(`--- [调试详情] 参数解析开始 ---`);
+    $.log(`[1] 原始参数类型: ${typeof rawArg}`);
+
+    // 解析字典/对象逻辑
+    if (typeof rawArg === 'object' && rawArg !== null && !Array.isArray(rawArg)) {
+        for (let key in rawArg) {
+            let val = String(rawArg[key]).trim();
+            if (!val || val === '""') continue;
+
+            $.log(`[2] 扫描键值对 -> ${key}: ${val}`);
+
+            if (key.includes("天数") && !isNaN(val)) {
+                advanceDays = parseInt(val);
+                $.log(`    ✅ 识别天数: ${advanceDays}`);
+            } else if (val.includes('@')) {
+                birthdayList.push(val);
+                $.log(`    ✅ 识别生日数据: ${val}`);
             }
-        } else {
-            // 参数不足11位时的后备方案
-            let last = rawArg.pop();
-            if (!isNaN(last)) advanceDays = parseInt(last);
-            rawArg.forEach(p => {
-                let s = String(p).trim().replace(/^["']|["']$/g, '');
-                if (s && s !== '""') birthdayList.push(...s.split(';').filter(i => i.trim()));
-            });
         }
+    } else {
+        // 兼容数组或字符串格式
+        let items = Array.isArray(rawArg) ? rawArg : [rawArg];
+        items.forEach((val, index) => {
+            let s = String(val).trim();
+            if (s.includes('@')) birthdayList.push(s);
+            else if (!isNaN(s) && s !== "") advanceDays = parseInt(s);
+        });
     }
 
-    $.log(`🔔 参数配置: [提前 ${advanceDays} 天] | 生日数据: ${birthdayList.length}条`);
+    $.log(`--- [调试详情] 参数解析结束 ---`);
+    $.log(`🔔 最终配置: [提前 ${advanceDays} 天] | 生日数据: ${birthdayList.length}条`);
 
     if (birthdayList.length === 0) {
-        $.log("⚠️ 未检测到有效生日数据，请检查插件配置。");
+        $.log("⚠️ 未检测到有效数据，脚本终止。");
         return $.done();
     }
 
@@ -95,23 +91,25 @@ const $ = new Env("生日提醒助手");
     today.setHours(0, 0, 0, 0);
     let results = [];
 
-    // --- 检查循环 ---
+    $.log(`🔍 开始日期检查 (今天: ${formatDate(today)})`);
+
     for (let i = 0; i <= advanceDays; i++) {
         let checkDate = new Date(today);
         checkDate.setDate(today.getDate() + i);
         
         let solarStr = formatDate(checkDate);
         let lunarObj = solarToLunar(checkDate);
-        let lunarStr = lunarObj ? `${String(lunarObj.month).padStart(2, '0')}-${String(lunarObj.day).padStart(2, '0')}` : null;
+        let lunarStr = lunarObj ? `${String(lunarObj.month).padStart(2, '0')}-${String(lunarObj.day).padStart(2, '0')}` : "无法转换";
 
         for (let item of birthdayList) {
             let parts = item.split(/@|,|，/);
             if (parts.length < 3) continue;
 
             let name = parts[0].trim();
-            let type = parts[1].trim(); // 0=公, 1=农
-            // 核心修复：替换各种形式的横杠、点、斜杠为标准减号
-            let targetDate = parts[2].trim().replace(/[−—﹣－.／\\]/g, '-').padStart(5, '0');
+            let type = parts[1].trim(); 
+            // 修正特殊横杠并强制补零
+            let rawDatePart = parts[2].trim().replace(/[−—﹣－.／\\]/g, '-');
+            let targetDate = rawDatePart.split('-').map(v => v.padStart(2, '0')).join('-');
 
             let isMatch = false;
             let label = "";
@@ -119,13 +117,13 @@ const $ = new Env("生日提醒助手");
             if (type === '0' && targetDate === solarStr) {
                 isMatch = true;
                 label = "公历";
-            } else if (type === '1' && lunarStr && targetDate === lunarStr) {
+            } else if (type === '1' && targetDate === lunarStr) {
                 isMatch = true;
                 label = `农历(${lunarStr})`;
             }
 
             if (isMatch) {
-                $.log(`🎉 匹配成功: ${name} (第 ${i} 天)`);
+                $.log(`✨ 发现匹配! [${name}] 在 ${i} 天后 (${label})`);
                 let dayLabel = (i === 0) ? `今天` : `还有 ${i} 天`;
                 results.push(`${i === 0 ? '🎂' : '⏳'} ${name} ${dayLabel}生日\n📅 日期: ${solarStr} ${label}`);
             }
@@ -133,10 +131,9 @@ const $ = new Env("生日提醒助手");
     }
 
     if (results.length > 0) {
-        let unique = [...new Set(results)];
-        $.msg("生日提醒助手 🎂", "发现近期寿星", unique.join('\n\n'));
+        $.msg("生日提醒助手", "发现近期寿星", [...new Set(results)].join('\n\n'));
     } else {
-        $.log("✅ 近期无人生日。");
+        $.log("✅ 检查完毕，近期无人生日。");
     }
 })().catch(e => {
     $.log("❌ 脚本运行错误: " + e.message);
