@@ -8,6 +8,6 @@
 {{{iKuuu获取Cookie开关}}}iKuuu自动获取Cookie = type=http-request, pattern=^https:\/\/ikuuu\.(fyi|win)/user, script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/ikuuu_auto.js, requires-body=false
 
 # 执行签到
-ikuuu自动签到 = type=cron, cronexp={{{CRON定时设置}}}, script-path=69yun.js, timeout=60, argument=silent={{{静默运行}}}
+ikuuu自动签到 = type=cron, cronexp={{{CRON定时设置}}}, script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/ikuuu_auto.js, timeout=60, argument=silent={{{静默运行}}}
 [MITM]
 hostname = %APPEND% ikuuu.win, ikuuu.fyi
