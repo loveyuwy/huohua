@@ -2,13 +2,17 @@ const $ = new Env("iKuuu助手");
 const checkinUrl = "https://ikuuu.win/user/checkin";
 
 let isSilent = false;
-let arg = (typeof $argument !== "undefined") ? $argument : "";
-$.log(`检测到运行参数: ${arg}`);
+const arg = (typeof $argument !== "undefined" && $argument) ? $argument : "";
 
-if (arg && arg.indexOf("#") !== -1) {
-    isSilent = true;
-    $.log("🤫 已开启静默模式，签到成功将不再弹窗通知");
+if (typeof arg === "string") {
+    if (arg.includes("#")) isSilent = true;
+} else if (typeof arg === "object" && arg !== null) {
+    if (arg["静默运行"] === "#" || arg["silent"] === "#") {
+        isSilent = true;
+    }
 }
+
+if (isSilent) $.log("🤫 静默模式已开启：签到成功将不再弹窗");
 
 if (typeof $request !== "undefined") {
     GetCookieOrCheckin();
@@ -65,6 +69,7 @@ function Checkin() {
 
     $.post(myRequest, (error, response, data) => {
         if (error) {
+            // 网络错误必须通知
             $.msg($.name + " ❌", "网络错误", "无法连接到服务器 📶");
             $.log("❌ 网络错误: " + error);
         } else {
@@ -74,26 +79,31 @@ function Checkin() {
                 const timeStr = now.getHours() + ":" + (now.getMinutes() < 10 ? "0" : "") + now.getMinutes();
 
                 if (obj.ret === 1) {
-                    // 签到成功：仅在非静默模式下弹窗
+                    // 情况 1: 真正签到成功
                     if (!isSilent) {
                         $.msg($.name + " 🚀", "签到成功 ✅", `💎 奖励详情: ${obj.msg}\n⏱️ 执行时间: ${timeStr}`);
                     }
                     $.log("✅ 签到成功: " + obj.msg);
+                } else if (obj.msg && obj.msg.includes("已经签到过")) {
+                    // 情况 2: 重复签到 (在静默模式下也视为成功，不通知)
+                    if (!isSilent) {
+                        $.msg($.name + " 🔔", "今日已签到", `📝 ${obj.msg}`);
+                    }
+                    $.log("ℹ️ 重复签到: " + obj.msg);
                 } else {
-                    // 签到提示（如重复签到）：无论是否静默都通知，因为这属于“状态异常”
-                    $.msg($.name + " 🔔", "签到提示", `📝 状态信息: ${obj.msg}\n📅 日期: ${now.toLocaleDateString()}`);
-                    $.log("⚠️ 签到结果: " + obj.msg);
+                    // 情况 3: 其他失败情况（如登录失效）- 必须通知
+                    $.msg($.name + " ⚠️", "签到失败", `📝 错误信息: ${obj.msg}`);
+                    $.log("❌ 签到失败: " + obj.msg);
                 }
             } catch (e) {
-                // 错误处理部分保持不变，报错必须弹窗通知
-                $.msg($.name + " ❌", "解析失败", "返回内容异常");
-                $.log("❌ 解析失败: " + e);
+                // 解析错误必须通知
+                $.msg($.name + " 🛑", "内容解析失败", "返回了非 JSON 内容，可能是 Cookie 失效了");
+                $.log("❌ 解析失败: " + e + "\n原始数据: " + data);
             }
         }
         $.done();
     });
 }
-
 
 function Env(t,e){class s{constructor(t){this.env=t}send(t,e="GET"){t="string"==typeof t?{url:t}:t;let s=this.get;return"POST"===e&&(s=this.post),new Promise((e,i)=>{s.call(this,t,(t,s,r)=>{t?i(t):e(s)})})}get(t){return this.send.call(this.env,t)}post(t){return this.send.call(this.env,t,"POST")}}return new class{constructor(t,e){this.name=t,this.http=new s(this),this.data=null,this.dataFile="box.dat",this.logs=[],this.isMute=!1,this.isNeedRewrite=!1,this.logSeparator="\n",this.startTime=(new Date).getTime(),Object.assign(this,e),this.log("",`🔔${this.name}, 开始!`)}isNode(){return"undefined"!=typeof module&&!!module.exports}isQuanX(){return"undefined"!=typeof $task}isSurge(){return"undefined"!=typeof $httpClient&&"undefined"==typeof $loon}isLoon(){return"undefined"!=typeof $loon}toObj(t,e=null){try{return JSON.parse(t)}catch{return e}}toStr(t,e=null){try{return JSON.stringify(t)}catch{return e}}getjson(t,e){let s=e;const i=this.getdata(t);if(i)try{s=JSON.parse(this.getdata(t))}catch{}return s}setjson(t,e){try{return this.setdata(JSON.stringify(t),e)}catch{return!1}}getScript(t){return new Promise(e=>{this.get({url:t},(t,s,i)=>e(i))})}runScript(t,e){return new Promise(s=>{let i=this.getdata("@chavy_boxjs_userCfgs.httpapi");i=i?i.replace(/\n/g,"").trim():i;let r=this.getdata("@chavy_boxjs_userCfgs.httpapi_timeout");r=r?1*r:20,r=e&&e.timeout?e.timeout:r;const[o,h]=i.split("@"),n={url:`http://${h}/v1/scripting/evaluate`,body:{script_text:t,mock_type:"cron",timeout:r},headers:{"X-Key":o,Accept:"*/*"}};this.post(n,(t,e,i)=>s(i))}).catch(t=>this.logErr(t))}loaddata(){if(!this.isNode())return{};{this.fs=this.fs?this.fs:require("fs"),this.path=this.path?this.path:require("path");const t=this.path.resolve(this.dataFile),e=this.path.resolve(process.cwd(),this.dataFile),s=this.fs.existsSync(t),i=!s&&this.fs.existsSync(e);if(!s&&!i)return{};{const i=s?t:e;try{return JSON.parse(this.fs.readFileSync(i))}catch(t){return{}}}}}writedata(){if(this.isNode()){this.fs=this.fs?this.fs:require("fs"),this.path=this.path?this.path:require("path");const t=this.path.resolve(this.dataFile),e=this.path.resolve(process.cwd(),this.dataFile),s=this.fs.existsSync(t),i=!s&&this.fs.existsSync(e),r=JSON.stringify(this.data);if(s)this.fs.writeFileSync(t,r);else{const t=i?e:t;this.fs.writeFileSync(t,r)}}}lodash_get(t,e,s){const i=e.replace(/\[(\d+)\]/g,".$1").split(".");let r=t;for(const t of i)if(r=Object(r)[t],void 0===r)return s;return r}lodash_set(t,e,s){return Object(t)!==t?t:(Array.isArray(e)||(e=e.toString().match(/[^.[\]]+/g)||[]),e.slice(0,-1).reduce((t,s,i)=>Object(t[s])===t[s]?t[s]:t[s]=Math.abs(e[i+1])>>0==+e[i+1]?[]:{},t)[e[e.length-1]]=s,t)}getdata(t){let e=this.getval(t);if(/^@/.test(t)){const[,s,i]=/^@(.*?)\.(.*?)$/.exec(t),r=s?this.getval(s):"";if(r)try{const t=JSON.parse(r);e=t?this.lodash_get(t,i,""):e}catch(t){e=""}}return e}setdata(t,e){let s=!1;if(/^@/.test(e)){const[,i,r]=/^@(.*?)\.(.*?)$/.exec(e),o=this.getval(i),h=i?"null"===o?null:o||"{}":"{}";try{const e=JSON.parse(h);this.lodash_set(e,r,t),s=this.setval(JSON.stringify(e),i)}catch(e){const o={};this.lodash_set(o,r,t),s=this.setval(JSON.stringify(o),i)}}else s=this.setval(t,e);return s}getval(t){return this.isSurge()||this.isLoon()?$persistentStore.read(t):this.isQuanX()?$prefs.valueForKey(t):this.isNode()?(this.data=this.loaddata(),this.data[t]):this.data&&this.data[t]||null}setval(t,e){return this.isSurge()||this.isLoon()?$persistentStore.write(t,e):this.isQuanX()?$prefs.setValueForKey(t,e):this.isNode()?(this.data=this.loaddata(),this.data[e]=t,this.writedata(),!0):this.data&&this.data[e]||null}initGotEnv(t){this.got=this.got?this.got:require("got"),this.cktough=this.cktough?this.cktough:require("tough-cookie"),this.ckjar=this.ckjar?this.ckjar:new this.cktough.CookieJar,t&&(t.headers=t.headers?t.headers:{},void 0===t.headers.Cookie&&void 0===t.headers.cookie&&(t.headers.Cookie=this.ckjar.getCookieStringSync(t.url)))}get(t,e=(()=>{
 
