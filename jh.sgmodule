@@ -6,7 +6,7 @@
 [Script]
 {{{app更新提醒}}}app更新提醒 = type=cron, cronexp="{{{CRON−app更新提示}}}",timeout=30,debug=0,script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/appgx.js,script-update-interval=0
 
-{{{双色球开奖结果}}}双色球开奖结果 = type=cron,cronexp="{{{双色球开奖结果}}}", script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/ssq.js,script-update-interval=0
+{{{双色球开奖结果}}}双色球开奖结果 = type=cron,cronexp="{{{CRON− 双色球开奖结果}}}", script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/ssq.js,script-update-interval=0
 
 {{{今日油价}}}今日油价 = type=cron,cronexp="{{{CRON−今日油价}}}", script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/jryj.js,script-update-interval=0,timeout=10,debug=0
 
