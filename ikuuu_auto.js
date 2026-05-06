@@ -17,7 +17,7 @@ function GetCookie() {
     if ($request && $request.headers) {
         const cookie = $request.headers['Cookie'] || $request.headers['cookie'];
         const url = $request.url;
-        if (cookie && (url.indexOf("ikuuu.win") !== -1 || url.indexOf("ikuuu.cc") !== -1 || url.indexOf("ikuuu.club") !== -1 || url.indexOf("ikuuu.li") !== -1 || url.indexOf("ikuuu.fyi") !== -1)) {
+        if (cookie && (url.indexOf("ikuuu.win") !== -1 || url.indexOf("ikuuu.fyi") !== -1)) {
             const saved = $.setdata(cookie, "ikuuu_cookie");
             if (saved) {
                 $.msg($.name + " 🍪", "Cookie 更新成功 🎉", "检测到 ikuuu 访问，已保存 🚀");
