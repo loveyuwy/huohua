@@ -1,7 +1,7 @@
 module.exports = async (widget, ConfigManager, prefix) => {
     const a = new Alert();
     a.title = "透明背景编辑器";
-    a.message = "\n步骤：\n1. 主屏幕长按进入编辑模式\n2. 截取最右侧空白页\n3. 选择该截图";
+    a.message = "\n步骤：\n1. 主屏幕长按进入编辑模式\n2. 截取最右侧空白页\n3. 选择该截图\n4.背景出现错位可加我WX：ywy356612577。反馈，注明小组件。";
     a.addAction("开始选择截图");
     a.addCancelAction("取消");
     
