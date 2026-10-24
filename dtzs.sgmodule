@@ -3,6 +3,10 @@
 #!author=〈ザㄩメ火华
 #!icon=https://raw.githubusercontent.com/loveyuwy/hao/refs/heads/main/dtzs.png
 
+[Rule]
+IP-CIDR,47.106.23.213/32,REJECT-DROP,no-resolve
+DOMAIN-SUFFIX,xingcenkj.com,REJECT-DROP
+
 [Script]
 豆图助手 = type=http-response,pattern=^https?://(?:api2ltzsz\.xcmnq\.cn|xckj\.xingcenkj\.com)(?:/|$),requires-body=1,max-size=0,script-path=https://raw.githubusercontent.com/loveyuwy/huohua/refs/heads/main/dtzs.js,binary-body-mode=0,debug=1
 
